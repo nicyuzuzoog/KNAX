@@ -1,0 +1,154 @@
+.equipment-page {
+  min-height: 100vh;
+}
+
+/* Hero */
+.equipment-hero {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  color: var(--white);
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.equipment-hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.equipment-hero p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+/* Equipment Section */
+.equipment-section {
+  padding: 60px 20px;
+  background: var(--off-white);
+}
+
+.equipment-category {
+  max-width: 1200px;
+  margin: 0 auto 50px;
+}
+
+.category-title {
+  font-size: 1.8rem;
+  color: var(--black);
+  margin-bottom: 30px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #2196F3;
+  display: inline-block;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.equipment-card {
+  background: var(--white);
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease;
+}
+
+.equipment-card:hover {
+  transform: translateY(-8px);
+}
+
+.equipment-icon {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.equipment-icon svg {
+  font-size: 2rem;
+  color: var(--white);
+}
+
+.equipment-card h3 {
+  font-size: 1.3rem;
+  color: var(--black);
+  margin-bottom: 12px;
+}
+
+.equipment-card > p {
+  color: var(--gray);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.equipment-features {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.equipment-features li {
+  color: var(--dark-gray);
+  margin: 8px 0;
+  font-size: 0.95rem;
+}
+
+.equipment-card .btn {
+  width: 100%;
+  text-align: center;
+}
+
+/* CTA */
+.equipment-cta {
+  background: var(--black);
+  color: var(--white);
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.equipment-cta h2 {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.equipment-cta > .container > p {
+  opacity: 0.9;
+  margin-bottom: 30px;
+}
+
+.cta-contacts {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cta-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: transform 0.3s ease;
+}
+
+.cta-contact:hover {
+  transform: scale(1.05);
+}
+
+.cta-contact.phone {
+  background: #4CAF50;
+  color: var(--white);
+}
+
+.cta-contact.whatsapp {
+  background: #25D366;
+  color: var(--white);
+}

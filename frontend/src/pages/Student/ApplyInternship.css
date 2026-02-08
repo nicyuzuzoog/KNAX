@@ -1,0 +1,366 @@
+.apply-page {
+  min-height: calc(100vh - 70px);
+  background-color: var(--off-white);
+  padding: 40px 20px;
+}
+
+.apply-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.apply-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.apply-header h1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 2rem;
+  color: var(--black);
+  margin-bottom: 10px;
+}
+
+.apply-header p {
+  color: var(--gray);
+  font-size: 1.1rem;
+}
+
+/* Already Registered */
+.already-registered {
+  text-align: center;
+  padding: 60px 40px;
+}
+
+.success-icon {
+  font-size: 4rem;
+  color: var(--primary-green);
+  margin-bottom: 20px;
+}
+
+.already-registered h2 {
+  margin-bottom: 12px;
+}
+
+.already-registered p {
+  color: var(--gray);
+  margin-bottom: 20px;
+}
+
+.reg-info {
+  background: var(--off-white);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.reg-info p {
+  margin: 8px 0;
+}
+
+/* Progress Steps */
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+  padding: 0 20px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--light-gray);
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+  background: var(--primary-green);
+  color: var(--white);
+}
+
+.step.completed .step-number {
+  background: var(--dark-green);
+  color: var(--white);
+}
+
+.step span {
+  font-size: 0.85rem;
+  color: var(--gray);
+  font-weight: 500;
+}
+
+.step.active span {
+  color: var(--primary-green);
+}
+
+.step-line {
+  flex: 1;
+  height: 3px;
+  background: var(--light-gray);
+  margin: 0 15px;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.apply-form {
+  padding: 40px;
+}
+
+.form-step h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  color: var(--black);
+}
+
+.step-description {
+  color: var(--gray);
+  margin-bottom: 30px;
+}
+
+/* Department Grid */
+.department-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.department-option {
+  position: relative;
+  background: var(--off-white);
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.department-option:hover {
+  border-color: var(--primary-green);
+  transform: translateY(-3px);
+}
+
+.department-option.selected {
+  border-color: var(--primary-green);
+  background: rgba(46, 125, 50, 0.1);
+}
+
+.dept-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.department-option h3 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+  color: var(--black);
+}
+
+.department-option p {
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+.selected-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--primary-green);
+  color: var(--white);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Payment Section */
+.payment-info {
+  background: linear-gradient(135deg, var(--primary-green), var(--dark-green));
+  color: var(--white);
+  padding: 30px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.payment-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 20px;
+}
+
+.amount-label {
+  font-size: 1.1rem;
+}
+
+.amount-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.payment-instructions h4 {
+  margin-bottom: 12px;
+}
+
+.payment-instructions ol {
+  padding-left: 20px;
+}
+
+.payment-instructions li {
+  margin: 8px 0;
+  opacity: 0.9;
+}
+
+/* File Upload */
+.file-upload-area {
+  position: relative;
+}
+
+.file-upload-area input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border: 2px dashed var(--light-gray);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 200px;
+}
+
+.file-upload-label:hover {
+  border-color: var(--primary-green);
+  background: rgba(46, 125, 50, 0.05);
+}
+
+.upload-icon {
+  font-size: 3rem;
+  color: var(--primary-green);
+  margin-bottom: 16px;
+}
+
+.file-upload-label span {
+  color: var(--gray);
+  margin: 4px 0;
+}
+
+.file-hint {
+  font-size: 0.85rem !important;
+}
+
+.receipt-preview {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+}
+
+/* Application Summary */
+.application-summary {
+  background: var(--off-white);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.application-summary h4 {
+  margin-bottom: 16px;
+  color: var(--black);
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item span {
+  color: var(--gray);
+}
+
+/* Info Box */
+.info-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(33, 150, 243, 0.1);
+  color: var(--info);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+/* Form Buttons */
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 30px;
+}
+
+.form-buttons .btn {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .apply-form {
+    padding: 24px;
+  }
+
+  .progress-steps {
+    flex-wrap: wrap;
+  }
+
+  .step-line {
+    display: none;
+  }
+
+  .department-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-amount {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+}

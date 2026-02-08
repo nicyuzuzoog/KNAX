@@ -1,0 +1,35 @@
+.admin-registrations {
+  min-height: calc(100vh - 70px);
+  background-color: var(--off-white);
+  padding: 30px 20px;
+}
+
+/* Filter Tabs */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-tab {
+  padding: 8px 20px;
+  border-radius: 20px;
+  background: var(--off-white);
+  color: var(--gray);
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.filter-tab:hover {
+  background: var(--light-gray);
+}
+
+.filter-tab.active {
+  background: var(--primary-green);
+  color: var(--white);
+}
+
+@media (max-width: 768px) {
+  .filter-tabs {
+    flex-wrap: wrap;
+  }
+}

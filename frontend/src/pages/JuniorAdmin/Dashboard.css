@@ -1,0 +1,44 @@
+.junior-admin-dashboard {
+  min-height: calc(100vh - 70px);
+  background-color: var(--off-white);
+  padding: 30px 20px;
+}
+
+.welcome-banner {
+  background: linear-gradient(135deg, var(--black), var(--dark-gray));
+  color: var(--white);
+  padding: 30px 40px;
+  border-radius: 16px;
+  margin-bottom: 30px;
+}
+
+.welcome-content h1 {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+}
+
+.welcome-content p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.9;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+  color: var(--black);
+}
+
+.recent-section {
+  margin-bottom: 30px;
+}
