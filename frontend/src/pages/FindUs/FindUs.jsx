@@ -46,10 +46,10 @@ const FindUs = () => {
                   Near <strong>Makuza Peace Plaza</strong>
                 </p>
                 <p className="sub-address">
-                  In front of <strong>BK MURI Carefree Zone</strong>
+                  In front of <strong>BK IN Carefree Zone</strong>
                 </p>
                 <p className="sub-address">
-                  <strong>ATENE Building</strong>, Kigali City Center
+                  <strong>ATHENE Building</strong>, Kigali City Center
                 </p>
               </div>
 
@@ -77,7 +77,7 @@ const FindUs = () => {
                   <FaEnvelope />
                   <div>
                     <span>Email</span>
-                    <strong>niyikorajeanbatist@gmail.com</strong>
+                    <strong>niyikorajeanbatiste@gmail.com</strong>
                   </div>
                 </a>
               </div>

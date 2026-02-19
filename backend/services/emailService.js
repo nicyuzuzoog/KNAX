@@ -1,149 +1,220 @@
-// services/emailService.js
+// backend/services/emailService.js
 const nodemailer = require('nodemailer');
-const path = require('path');
-const fs = require('fs');
 
-// Create transporter
+// Email configuration
+const EMAIL_USER = process.env.EMAIL_USER || 'nicjbdede@gmail.com';
+const EMAIL_PASS = process.env.EMAIL_PASS || 'ymya xgee snin xifn';
+
 let transporter = null;
 
-try {
-  const emailUser = process.env.EMAIL_USER || 'nicjbdede@gmail.com';
-  const emailPass = process.env.EMAIL_PASS || 'ymya xgee snin xifn';
+const initializeTransporter = () => {
+  try {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: EMAIL_USER,
+        pass: EMAIL_PASS
+      }
+    });
 
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: emailUser,
-      pass: emailPass
-    }
-  });
-
-  // Verify on startup
-  transporter.verify()
-    .then(() => console.log('✅ Email server ready'))
-    .catch(err => console.log('⚠️ Email error:', err.message));
-
-} catch (error) {
-  console.log('⚠️ Email not configured:', error.message);
-}
-
-// Send welcome email after registration
-const sendWelcomeEmail = async (user) => {
-  if (!transporter) {
-    console.log('⚠️ No email transporter - skipping email');
-    return false;
+    transporter.verify((error, success) => {
+      if (error) {
+        console.log('⚠️ Email warning:', error.message);
+      } else {
+        console.log('✅ Email server ready');
+      }
+    });
+  } catch (error) {
+    console.log('⚠️ Email not configured:', error.message);
   }
+};
 
-  const mailOptions = {
-    from: `"KNAX_250 TECHNOLOGY Ltd" <${process.env.EMAIL_USER || 'nicjbdede@gmail.com'}>`,
-    to: user.email,
-    subject: '🎉 Welcome to KNAX_250 TECHNOLOGY Ltd!',
-    html: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background: white;">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #1976D2, #0D47A1); padding: 40px 20px; text-align: center;">
-            <h1 style="color: #FFD700; margin: 0; font-size: 28px;">🎓 KNAX_250 TECHNOLOGY Ltd</h1>
-            <p style="color: white; margin-top: 10px; font-size: 14px;">RTB Certified Technical Training Center</p>
-          </div>
-          
-          <!-- Content -->
-          <div style="padding: 40px 30px;">
-            <h2 style="color: #1976D2; margin-top: 0;">Welcome, ${user.fullName}! 🎉</h2>
-            <p style="color: #333; line-height: 1.6;">Thank you for registering with KNAX_250 TECHNOLOGY Ltd! We're excited to have you join our community of learners.</p>
-            
-            <!-- Steps Box -->
-            <div style="background: linear-gradient(135deg, #1976D2, #1565C0); color: white; padding: 25px; border-radius: 10px; margin: 25px 0;">
-              <h3 style="color: #FFD700; margin: 0 0 15px 0;">📋 Next Steps:</h3>
-              <ol style="margin: 0; padding-left: 20px; line-height: 2;">
-                <li>Login to your dashboard</li>
-                <li>Apply for your preferred internship</li>
-                <li>Pay 30,000 RWF registration fee</li>
-                <li>Upload your payment receipt</li>
-                <li>Wait for approval (24-48 hours)</li>
-              </ol>
-            </div>
-            
-            <!-- Departments -->
-            <h3 style="color: #1976D2;">Available Departments:</h3>
-            <ul style="line-height: 2; color: #333;">
-              <li>🖥️ <strong>NIT</strong> - Networking & IT</li>
-              <li>💻 <strong>SOD</strong> - Software Development</li>
-              <li>📊 <strong>ACCOUNTING</strong> - Financial Management</li>
-              <li>🔧 <strong>CSA</strong> - Computer Service & Assembly</li>
-              <li>⚡ <strong>ETE</strong> - Electronics & Telecommunications</li>
-            </ul>
-            
-            <!-- Info Box -->
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #1976D2; margin: 20px 0;">
-              <p style="margin: 0;"><strong>📍 Location:</strong> Near Makuza Peace Plaza, ATENE Building, Kigali</p>
-              <p style="margin: 10px 0 0 0;"><strong>📞 Phone:</strong> 0782562906</p>
-              <p style="margin: 10px 0 0 0;"><strong>📧 Email:</strong> nicjbdede@gmail.com</p>
-            </div>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="http://localhost:3000/login" style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); color: #1a1a2e; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Login to Dashboard →</a>
-            </div>
-          </div>
-          
-          <!-- Footer -->
-          <div style="background: #1a1a2e; padding: 30px; text-align: center; color: white;">
-            <p style="margin: 0;">© 2024 KNAX_250 TECHNOLOGY Ltd. All rights reserved.</p>
-            <p style="margin: 15px 0 0 0;">Follow us: <a href="https://www.instagram.com/knax_250" style="color: #FFD700; text-decoration: none;">@knax_250</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
-  };
+initializeTransporter();
+
+// Email template base
+const getEmailTemplate = (title, content, footerText = '') => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+  <div style="max-width: 600px; margin: 0 auto; background: white;">
+    <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 30px 20px; text-align: center;">
+      <h1 style="color: #FFD700; margin: 0; font-size: 24px;">🎓 KNAX_250 TECHNOLOGY Ltd</h1>
+      <p style="color: rgba(255,255,255,0.8); margin-top: 8px; font-size: 14px;">RTB Certified Technical Training Center</p>
+    </div>
+    
+    <div style="padding: 30px;">
+      <h2 style="color: #1976D2; margin-top: 0;">${title}</h2>
+      ${content}
+    </div>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-top: 1px solid #e2e8f0;">
+      <p style="margin: 0; color: #666; font-size: 14px;">
+        📍 Near Makuza Peace Plaza, ATENE Building, Kigali<br>
+        📞 0782562906 | 📧 nicjbdede@gmail.com
+      </p>
+      ${footerText}
+    </div>
+    
+    <div style="background: #1a1a2e; padding: 20px; text-align: center; color: rgba(255,255,255,0.7);">
+      <p style="margin: 0; font-size: 12px;">© 2024 KNAX_250 TECHNOLOGY Ltd. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+// Send Welcome Email
+const sendWelcomeEmail = async (user) => {
+  if (!transporter) return false;
+
+  const content = `
+    <p style="color: #333; line-height: 1.6;">
+      Welcome <strong>${user.fullName}</strong>! 🎉
+    </p>
+    <p style="color: #333; line-height: 1.6;">
+      Thank you for registering with KNAX_250 TECHNOLOGY Ltd. You can now apply for an internship program.
+    </p>
+    
+    <div style="background: linear-gradient(135deg, #1976D2, #1565C0); color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+      <h3 style="color: #FFD700; margin: 0 0 10px 0;">📋 Next Steps:</h3>
+      <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
+        <li>Login to your dashboard</li>
+        <li>Apply for your preferred department</li>
+        <li>Pay 30,000 RWF registration fee</li>
+        <li>Upload payment receipt</li>
+        <li>Wait for admin approval</li>
+      </ol>
+    </div>
+    
+    <div style="text-align: center; margin: 25px 0;">
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+         style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
+                color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
+                font-weight: bold;">
+        Login to Dashboard →
+      </a>
+    </div>
+  `;
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Welcome email sent:', info.messageId);
+    await transporter.sendMail({
+      from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
+      to: user.email,
+      subject: '🎉 Welcome to KNAX_250 TECHNOLOGY Ltd!',
+      html: getEmailTemplate('Welcome! 🎉', content)
+    });
+    console.log('✅ Welcome email sent to:', user.email);
     return true;
   } catch (error) {
-    console.error('❌ Send email error:', error.message);
+    console.error('❌ Email error:', error.message);
     return false;
   }
 };
 
-// Send registration confirmation (when student applies for internship)
-const sendRegistrationConfirmation = async (user, registration) => {
+// Send Junior Admin Welcome Email
+const sendJuniorAdminWelcome = async (user, password) => {
   if (!transporter) return false;
+
+  const content = `
+    <p style="color: #333; line-height: 1.6;">
+      Congratulations <strong>${user.fullName}</strong>! 🎉
+    </p>
+    <p style="color: #333; line-height: 1.6;">
+      You have been appointed as a <strong>Junior Admin</strong> for the 
+      <strong style="color: #1976D2;">${user.department}</strong> department.
+    </p>
+    
+    <div style="background: linear-gradient(135deg, #1976D2, #1565C0); color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+      <h3 style="color: #FFD700; margin: 0 0 15px 0;">🔐 Your Login Credentials:</h3>
+      <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+        <p style="margin: 5px 0;"><strong>Email:</strong> ${user.email}</p>
+        <p style="margin: 5px 0;"><strong>Password:</strong> ${password}</p>
+      </div>
+      <p style="font-size: 12px; opacity: 0.9; margin: 15px 0 0 0;">
+        ⚠️ Please change your password after first login!
+      </p>
+    </div>
+    
+    <h3 style="color: #1976D2;">📋 Your Responsibilities:</h3>
+    <ul style="line-height: 2; color: #333;">
+      <li>✅ Approve/Reject student payments</li>
+      <li>✅ Mark student attendance</li>
+      <li>✅ Manage timetable & shifts</li>
+      <li>✅ Post announcements</li>
+    </ul>
+    
+    <div style="text-align: center; margin: 25px 0;">
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+         style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
+                color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
+                font-weight: bold;">
+        Login to Admin Portal →
+      </a>
+    </div>
+  `;
 
   try {
     await transporter.sendMail({
-      from: `"KNAX_250 TECHNOLOGY Ltd" <${process.env.EMAIL_USER || 'nicjbdede@gmail.com'}>`,
+      from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
+      to: user.email,
+      subject: '🎉 Junior Admin Account Created - KNAX_250',
+      html: getEmailTemplate('Admin Account Created! 🎉', content)
+    });
+    console.log('✅ Junior admin welcome email sent to:', user.email);
+    return true;
+  } catch (error) {
+    console.error('❌ Email error:', error.message);
+    return false;
+  }
+};
+
+// Send Registration Confirmation
+const sendRegistrationConfirmation = async (user, registration) => {
+  if (!transporter) return false;
+
+  const content = `
+    <p style="color: #333; line-height: 1.6;">
+      Dear <strong>${user.fullName}</strong>,
+    </p>
+    <p style="color: #333; line-height: 1.6;">
+      We have received your internship application. Here are the details:
+    </p>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Department:</td>
+          <td style="padding: 8px 0; font-weight: bold; color: #1976D2;">${registration.department}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Shift:</td>
+          <td style="padding: 8px 0; font-weight: bold;">${registration.shift}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Amount Paid:</td>
+          <td style="padding: 8px 0; font-weight: bold;">30,000 RWF</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background: #FFF3E0; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800;">
+      <p style="margin: 0; color: #E65100;">
+        <strong>⏳ Status:</strong> Pending Review<br>
+        Our team will review your payment and get back to you within 24-48 hours.
+      </p>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
       to: user.email,
       subject: '📋 Application Received - KNAX_250',
-      html: `
-        <div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: white;">
-          <div style="background: linear-gradient(135deg, #1976D2, #0D47A1); padding: 30px; text-align: center;">
-            <h1 style="color: #FFD700; margin: 0;">KNAX_250 TECHNOLOGY Ltd</h1>
-          </div>
-          <div style="padding: 30px;">
-            <h2 style="color: #1976D2;">Application Received! 📋</h2>
-            <p>Dear <strong>${user.fullName}</strong>,</p>
-            <p>We have received your internship application for <strong>${registration.department}</strong>.</p>
-            <div style="background: #FFF3E0; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800; margin: 20px 0;">
-              <p style="margin: 0;"><strong>⏳ Status:</strong> Pending Review</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px;">Our team is reviewing your payment receipt.</p>
-            </div>
-            <p>You'll receive an email once your application is approved!</p>
-            <p>📞 Questions? Call us: <strong>0782562906</strong></p>
-          </div>
-          <div style="background: #1a1a2e; padding: 20px; text-align: center; color: white;">
-            <p style="margin: 0;">© 2024 KNAX_250 TECHNOLOGY Ltd</p>
-          </div>
-        </div>
-      `
+      html: getEmailTemplate('Application Received! 📋', content)
     });
     console.log('✅ Registration confirmation sent to:', user.email);
     return true;
@@ -153,49 +224,67 @@ const sendRegistrationConfirmation = async (user, registration) => {
   }
 };
 
-// Send approval email
-const sendApprovalEmail = async (user, registration) => {
+// Send Payment Approval Email
+const sendPaymentApprovalEmail = async (user, registration) => {
   if (!transporter) return false;
 
-  const startDate = registration.startDate 
-    ? new Date(registration.startDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-    : 'To be announced';
+  const content = `
+    <p style="color: #333; line-height: 1.6;">
+      Dear <strong>${user.fullName}</strong>,
+    </p>
+    <p style="color: #333; line-height: 1.6;">
+      Great news! 🎉 Your payment has been <strong style="color: #4CAF50;">APPROVED</strong>!
+    </p>
+    
+    <div style="background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
+      <h2 style="margin: 0;">✅ PAYMENT APPROVED</h2>
+      <p style="margin: 10px 0 0 0; opacity: 0.9;">You are now officially enrolled!</p>
+    </div>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
+      <h3 style="color: #1976D2; margin-top: 0;">📋 Your Internship Details:</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Department:</td>
+          <td style="padding: 8px 0; font-weight: bold;">${registration.department}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Shift:</td>
+          <td style="padding: 8px 0; font-weight: bold;">${registration.shift}</td>
+        </tr>
+        ${registration.startDate ? `
+        <tr>
+          <td style="padding: 8px 0; color: #666;">Start Date:</td>
+          <td style="padding: 8px 0; font-weight: bold;">${new Date(registration.startDate).toLocaleDateString()}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+    
+    <h3 style="color: #1976D2;">📋 What's Next:</h3>
+    <ul style="line-height: 2; color: #333;">
+      <li>Check your dashboard for your timetable</li>
+      <li>Attend classes according to your shift</li>
+      <li>Mark your attendance daily</li>
+      <li>Complete all assigned homeworks</li>
+    </ul>
+    
+    <div style="text-align: center; margin: 25px 0;">
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/dashboard" 
+         style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
+                color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
+                font-weight: bold;">
+        Go to Dashboard →
+      </a>
+    </div>
+  `;
 
   try {
     await transporter.sendMail({
-      from: `"KNAX_250 TECHNOLOGY Ltd" <${process.env.EMAIL_USER || 'nicjbdede@gmail.com'}>`,
+      from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
       to: user.email,
-      subject: '✅ Congratulations! Application Approved - KNAX_250',
-      html: `
-        <div style="font-family: Arial; max-width: 600px; margin: 0 auto; background: white;">
-          <div style="background: linear-gradient(135deg, #4CAF50, #388E3C); padding: 40px; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 32px;">✅ YOU'RE APPROVED!</h1>
-          </div>
-          <div style="padding: 30px;">
-            <h2 style="color: #4CAF50;">Congratulations, ${user.fullName}! 🎉</h2>
-            <p>Your internship application has been <strong style="color: #4CAF50;">APPROVED</strong>!</p>
-            
-            <div style="background: #E8F5E9; padding: 20px; border-radius: 10px; margin: 20px 0;">
-              <h3 style="color: #2E7D32; margin-top: 0;">📋 Internship Details:</h3>
-              <p><strong>Department:</strong> ${registration.department}</p>
-              <p><strong>Start Date:</strong> ${startDate}</p>
-              <p><strong>Location:</strong> Near Makuza Peace Plaza, ATENE Building</p>
-            </div>
-            
-            <h3 style="color: #1976D2;">📌 What to Bring:</h3>
-            <ul style="line-height: 2;">
-              <li>✅ National ID</li>
-              <li>✅ This approval email</li>
-              <li>✅ Notebook and pen</li>
-            </ul>
-            
-            <p><strong>🆓 Free WiFi Available!</strong></p>
-          </div>
-          <div style="background: #1a1a2e; padding: 20px; text-align: center; color: white;">
-            <p>📞 0782562906 | Follow: <a href="https://www.instagram.com/knax_250" style="color: #FFD700;">@knax_250</a></p>
-          </div>
-        </div>
-      `
+      subject: '✅ Payment Approved - Welcome to KNAX_250!',
+      html: getEmailTemplate('Payment Approved! ✅', content)
     });
     console.log('✅ Approval email sent to:', user.email);
     return true;
@@ -205,31 +294,48 @@ const sendApprovalEmail = async (user, registration) => {
   }
 };
 
-// Send rejection email
-const sendRejectionEmail = async (user, registration, reason = 'Payment verification failed') => {
+// Send Payment Rejection Email
+const sendPaymentRejectionEmail = async (user, reason) => {
   if (!transporter) return false;
+
+  const content = `
+    <p style="color: #333; line-height: 1.6;">
+      Dear <strong>${user.fullName}</strong>,
+    </p>
+    <p style="color: #333; line-height: 1.6;">
+      Unfortunately, your payment could not be verified and has been <strong style="color: #f44336;">REJECTED</strong>.
+    </p>
+    
+    <div style="background: #FFEBEE; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #f44336;">
+      <h3 style="color: #c62828; margin-top: 0;">❌ Reason for Rejection:</h3>
+      <p style="color: #333; margin: 0;">${reason || 'Payment receipt could not be verified. Please contact support for more information.'}</p>
+    </div>
+    
+    <h3 style="color: #1976D2;">📋 What You Can Do:</h3>
+    <ul style="line-height: 2; color: #333;">
+      <li>Ensure you have made the correct payment (30,000 RWF)</li>
+      <li>Take a clear photo of your payment receipt</li>
+      <li>Submit a new application with valid receipt</li>
+      <li>Contact support if you believe this is an error</li>
+    </ul>
+    
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+      <p style="margin: 0; color: #666;">
+        <strong>Need Help?</strong><br>
+        📞 Call: 0782562906<br>
+        📧 Email: nicjbdede@gmail.com
+      </p>
+    </div>
+  `;
 
   try {
     await transporter.sendMail({
-      from: `"KNAX_250 TECHNOLOGY Ltd" <${process.env.EMAIL_USER || 'nicjbdede@gmail.com'}>`,
+      from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
       to: user.email,
-      subject: '⚠️ Application Update - KNAX_250',
-      html: `
-        <div style="font-family: Arial; max-width: 600px; margin: 0 auto;">
-          <div style="background: #FF9800; padding: 30px; text-align: center;">
-            <h1 style="color: white; margin: 0;">⚠️ Application Update</h1>
-          </div>
-          <div style="padding: 30px; background: white;">
-            <p>Dear ${user.fullName},</p>
-            <div style="background: #FFF3E0; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Reason:</strong> ${reason}</p>
-            </div>
-            <p>You can resubmit with correct documents. Contact us for help!</p>
-            <p>📞 <strong>0782562906</strong></p>
-          </div>
-        </div>
-      `
+      subject: '❌ Payment Rejected - KNAX_250',
+      html: getEmailTemplate('Payment Rejected', content)
     });
+    console.log('✅ Rejection email sent to:', user.email);
     return true;
   } catch (error) {
     console.error('❌ Email error:', error.message);
@@ -237,38 +343,120 @@ const sendRejectionEmail = async (user, registration, reason = 'Payment verifica
   }
 };
 
-// Send certificate (simplified version)
-const sendCertificate = async (user, registration) => {
+// Send Announcement Email - NEW FUNCTION
+const sendAnnouncementEmail = async (recipients, announcement) => {
+  if (!transporter) {
+    console.log('⚠️ No email transporter');
+    return { success: 0, failed: 0 };
+  }
+
+  const getTypeStyle = (type) => {
+    switch (type) {
+      case 'urgent':
+        return { bg: '#f44336', icon: '🚨', label: 'URGENT' };
+      case 'event':
+        return { bg: '#9c27b0', icon: '📅', label: 'EVENT' };
+      case 'reminder':
+        return { bg: '#ff9800', icon: '⏰', label: 'REMINDER' };
+      default:
+        return { bg: '#2196F3', icon: '📢', label: 'ANNOUNCEMENT' };
+    }
+  };
+
+  const style = getTypeStyle(announcement.type);
+
+  const content = `
+    <div style="background: ${style.bg}; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+      <span style="font-size: 24px;">${style.icon}</span>
+      <h2 style="margin: 10px 0 5px 0;">${style.label}</h2>
+    </div>
+    
+    <h2 style="color: #1e293b; margin-top: 0;">${announcement.title}</h2>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; line-height: 1.8;">
+      <p style="margin: 0; color: #333; white-space: pre-wrap;">${announcement.content}</p>
+    </div>
+    
+    ${announcement.expiresAt ? `
+    <div style="background: #FFF3E0; padding: 12px; border-radius: 8px; border-left: 4px solid #FF9800;">
+      <p style="margin: 0; color: #E65100; font-size: 14px;">
+        ⏰ This announcement expires on: <strong>${new Date(announcement.expiresAt).toLocaleDateString()}</strong>
+      </p>
+    </div>
+    ` : ''}
+    
+    <div style="text-align: center; margin: 25px 0;">
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+         style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); 
+                color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
+                font-weight: bold;">
+        View Dashboard →
+      </a>
+    </div>
+  `;
+
+  let success = 0;
+  let failed = 0;
+
+  for (const recipient of recipients) {
+    try {
+      await transporter.sendMail({
+        from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
+        to: recipient.email,
+        subject: `${style.icon} ${announcement.title} - KNAX_250`,
+        html: getEmailTemplate(announcement.title, content)
+      });
+      success++;
+      console.log('✅ Announcement email sent to:', recipient.email);
+    } catch (error) {
+      failed++;
+      console.error('❌ Failed to send to:', recipient.email, error.message);
+    }
+  }
+
+  return { success, failed };
+};
+
+// Send Password Reset Email
+const sendPasswordResetEmail = async (user, resetUrl) => {
   if (!transporter) return false;
 
-  // For now, just send an email without PDF attachment
-  // PDF generation can be added later
+  const content = `
+    <p style="color: #333; line-height: 1.6;">
+      Hello <strong>${user.fullName}</strong>,
+    </p>
+    <p style="color: #333; line-height: 1.6;">
+      We received a request to reset your password. Click the button below to create a new password:
+    </p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${resetUrl}" 
+         style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
+                color: #1a1a2e; padding: 15px 40px; text-decoration: none; border-radius: 8px; 
+                font-weight: bold; font-size: 16px;">
+        Reset Password →
+      </a>
+    </div>
+    
+    <div style="background: #FFF3E0; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800;">
+      <p style="margin: 0; color: #E65100;">
+        ⚠️ This link will expire in 1 hour.
+      </p>
+    </div>
+    
+    <p style="color: #666; font-size: 14px; margin-top: 20px;">
+      If you didn't request this, please ignore this email.
+    </p>
+  `;
+
   try {
     await transporter.sendMail({
-      from: `"KNAX_250 TECHNOLOGY Ltd" <${process.env.EMAIL_USER || 'nicjbdede@gmail.com'}>`,
+      from: `"KNAX_250 TECHNOLOGY Ltd" <${EMAIL_USER}>`,
       to: user.email,
-      subject: '🎓 Congratulations! Internship Completed - KNAX_250',
-      html: `
-        <div style="font-family: Arial; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 40px; text-align: center;">
-            <h1 style="color: #FFD700; margin: 0;">🎓 CERTIFICATE OF COMPLETION</h1>
-          </div>
-          <div style="padding: 30px; background: white; text-align: center;">
-            <h2 style="color: #1976D2;">Congratulations, ${user.fullName}! 🎉</h2>
-            <p>You have successfully completed your internship in <strong>${registration.department}</strong>!</p>
-            <div style="background: #FFD700; padding: 20px; border-radius: 10px; margin: 20px 0;">
-              <p style="margin: 0; color: #1a1a2e; font-weight: bold;">Your physical certificate is ready for pickup!</p>
-            </div>
-            <p>Visit our office to collect your official RTB-certified certificate.</p>
-            <p>📍 Near Makuza Peace Plaza, ATENE Building</p>
-          </div>
-          <div style="background: #1a1a2e; padding: 20px; text-align: center; color: white;">
-            <p>© 2024 KNAX_250 TECHNOLOGY Ltd</p>
-          </div>
-        </div>
-      `
+      subject: '🔐 Password Reset Request - KNAX_250',
+      html: getEmailTemplate('Password Reset', content)
     });
-    console.log('✅ Certificate notification sent to:', user.email);
+    console.log('✅ Password reset email sent to:', user.email);
     return true;
   } catch (error) {
     console.error('❌ Email error:', error.message);
@@ -278,8 +466,10 @@ const sendCertificate = async (user, registration) => {
 
 module.exports = {
   sendWelcomeEmail,
+  sendJuniorAdminWelcome,
   sendRegistrationConfirmation,
-  sendApprovalEmail,
-  sendRejectionEmail,
-  sendCertificate
+  sendPaymentApprovalEmail,
+  sendPaymentRejectionEmail,
+  sendAnnouncementEmail,
+  sendPasswordResetEmail
 };

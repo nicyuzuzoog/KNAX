@@ -1,3 +1,4 @@
+// routes/timetableRoutes.js
 const express = require('express');
 const router = express.Router();
 const {
@@ -6,11 +7,14 @@ const {
   updateTimetable,
   deleteTimetable
 } = require('../controllers/timetableController');
-const { auth, superAdminOnly } = require('../middleware/auth');
+const { auth, adminOnly } = require('../middleware/auth');
 
+// Get timetable - available to all authenticated users
 router.get('/', auth, getTimetable);
-router.post('/', auth, superAdminOnly, addTimetable);
-router.patch('/:id', auth, superAdminOnly, updateTimetable);
-router.delete('/:id', auth, superAdminOnly, deleteTimetable);
+
+// Admin routes (both super_admin and junior_admin with permissions)
+router.post('/', auth, adminOnly, addTimetable);
+router.patch('/:id', auth, adminOnly, updateTimetable);
+router.delete('/:id', auth, adminOnly, deleteTimetable);
 
 module.exports = router;

@@ -1,9 +1,9 @@
-// pages/Login/Login.jsx
+// src/pages/Login/Login.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
-import BackButton from '../../components/BackButton/BackButton';
+import Navbar from '../../components/Navbar/Navbar';
 import Loader from '../../components/Loader/Loader';
 import { 
   FaEnvelope, 
@@ -11,15 +11,17 @@ import {
   FaSignInAlt,
   FaGraduationCap,
   FaEye,
-  FaEyeSlash
+  FaEyeSlash,
+  FaLaptopCode,
+  FaNetworkWired,
+  FaChartLine,
+  FaMicrochip,
+  FaWifi
 } from 'react-icons/fa';
 import './Auth.css';
 
 const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -35,147 +37,190 @@ const Login = () => {
 
   const validateForm = () => {
     const newErrors = {};
-
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = 'Enter a valid email';
     }
-
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
-
     try {
-      const response = await login(formData);
-      toast.success('Welcome back!');
+      const data = await login(formData);
       
-      // Navigate based on user role
-      if (response.user.role === 'super_admin') {
-        navigate('/super-admin/dashboard');
-      } else if (response.user.role === 'junior_admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/student/dashboard');
+      console.log('Login response:', data);
+      
+      toast.success(`Welcome back, ${data.user.fullName}!`);
+
+      // Redirect based on role
+      switch (data.user.role) {
+        case 'super_admin':
+          navigate('/super-admin/dashboard', { replace: true });
+          break;
+        case 'junior_admin':
+          navigate('/admin/dashboard', { replace: true });
+          break;
+        case 'student':
+          navigate('/student/dashboard', { replace: true });
+          break;
+        default:
+          navigate('/', { replace: true });
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed. Please check your credentials.');
+      console.error('Login error:', error);
+      const errorMsg = error.response?.data?.message || 'Login failed. Please check your credentials.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <Loader />;
-  }
+  if (loading) return <Loader />;
 
   return (
-    <div className="auth-page">
-      {/* Back Button */}
-      <BackButton to="/" text="Back to Home" />
-
-      <div className="auth-container">
-        <div className="auth-header">
-          <div className="auth-logo">
-            <FaGraduationCap />
-          </div>
-          <h1>Welcome Back</h1>
-          <p>Login to your KNAX250 account</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          {/* Email */}
-          <div className={`form-group ${errors.email ? 'error' : ''}`}>
-            <label>
-              <FaEnvelope /> Email Address
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              required
-            />
-            {errors.email && <span className="error-text">{errors.email}</span>}
-          </div>
-
-          {/* Password */}
-          <div className={`form-group ${errors.password ? 'error' : ''}`}>
-            <label>
-              <FaLock /> Password
-            </label>
-            <div className="password-input-wrapper">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
+    <>
+      <Navbar />
+      <div className="auth-page-split">
+        <div className="auth-left">
+          <div className="auth-left-content">
+            <div className="auth-brand">
+              <FaGraduationCap className="brand-icon" />
+              <h1>KNAX<span>250</span></h1>
+              <p>Technical Training Center</p>
             </div>
-            {errors.password && <span className="error-text">{errors.password}</span>}
+            <div className="auth-features">
+              <h2>Transform Your Future</h2>
+              <p>Join Rwanda's leading technical training center</p>
+              <div className="feature-list">
+                <div className="feature-item">
+                  <div className="feature-icon"><FaLaptopCode /></div>
+                  <div className="feature-text">
+                    <h4>Software Development</h4>
+                    <p>Web & Mobile Apps</p>
+                  </div>
+                </div>
+                <div className="feature-item">
+                  <div className="feature-icon"><FaNetworkWired /></div>
+                  <div className="feature-text">
+                    <h4>Networking & IT</h4>
+                    <p>Infrastructure & Security</p>
+                  </div>
+                </div>
+                <div className="feature-item">
+                  <div className="feature-icon"><FaChartLine /></div>
+                  <div className="feature-text">
+                    <h4>Accounting</h4>
+                    <p>Financial Management</p>
+                  </div>
+                </div>
+                <div className="feature-item">
+                  <div className="feature-icon"><FaMicrochip /></div>
+                  <div className="feature-text">
+                    <h4>Electronics</h4>
+                    <p>Repair & Maintenance</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="floating-elements">
+              <div className="floating-circle circle-1"></div>
+              <div className="floating-circle circle-2"></div>
+              <div className="floating-circle circle-3"></div>
+              <div className="floating-icon icon-1"><FaWifi /></div>
+              <div className="floating-icon icon-2"><FaLaptopCode /></div>
+              <div className="floating-icon icon-3"><FaNetworkWired /></div>
+            </div>
           </div>
-
-          {/* Remember Me & Forgot Password */}
-          <div className="form-options">
-            <label className="remember-me">
-              <input type="checkbox" />
-              <span>Remember me</span>
-            </label>
-            <Link to="/forgot-password" className="forgot-link">
-              Forgot password?
-            </Link>
-          </div>
-
-          {/* Submit Button */}
-          <button 
-            type="submit" 
-            className={`btn btn-primary btn-full ${loading ? 'btn-loading' : ''}`}
-            disabled={loading}
-          >
-            <FaSignInAlt /> Login
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="auth-divider">
-          <span></span>
-          <p>or</p>
-          <span></span>
         </div>
 
-        <div className="auth-footer">
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register" className="auth-link">
-              Register here
-            </Link>
-          </p>
+        <div className="auth-right">
+          <div className="auth-form-container">
+            <div className="auth-form-header">
+              <h2>Welcome Back</h2>
+              <p>Login to your account</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div className={`form-group ${errors.email ? 'error' : ''}`}>
+                <label><FaEnvelope /> Email Address</label>
+                <input 
+                  type="email" 
+                  name="email" 
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                />
+                {errors.email && <span className="error-text">{errors.email}</span>}
+              </div>
+
+              <div className={`form-group ${errors.password ? 'error' : ''}`}>
+                <label><FaLock /> Password</label>
+                <div className="password-input-wrapper">
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    name="password" 
+                    value={formData.password} 
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                  />
+                  <button 
+                    type="button" 
+                    className="password-toggle" 
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {errors.password && <span className="error-text">{errors.password}</span>}
+              </div>
+
+              <div className="form-options">
+                <label className="remember-me">
+                  <input type="checkbox" />
+                  <span>Remember me</span>
+                </label>
+                <Link to="/forgot-password" className="forgot-link">Forgot password?</Link>
+              </div>
+
+              <button 
+                type="submit" 
+                className={`btn btn-primary btn-full ${loading ? 'btn-loading' : ''}`} 
+                disabled={loading}
+              >
+                {loading ? (
+                  <span>Logging in...</span>
+                ) : (
+                  <>
+                    <FaSignInAlt /> Login
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="auth-divider">
+              <span></span>
+              <p>or</p>
+              <span></span>
+            </div>
+
+            <div className="auth-footer">
+              <p>Don't have an account? <Link to="/register" className="auth-link">Register here</Link></p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

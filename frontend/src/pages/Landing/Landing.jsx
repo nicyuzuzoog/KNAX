@@ -460,8 +460,8 @@ const Landing = () => {
                   <div className="detail-text">
                     <strong>Address</strong>
                     <p>Near Makuza Peace Plaza<br />
-                    In front of BK MURI Carefree Zone<br />
-                    ATENE Building, Kigali</p>
+                    In front of BK In Carefree Zone<br />
+                    ATHENE Building, Kigali</p>
                   </div>
                 </div>
                 
@@ -481,7 +481,7 @@ const Landing = () => {
                   </div>
                   <div className="detail-text">
                     <strong>Email</strong>
-                    <p>nicjbdede@gmail.com</p>
+                    <p>niyikorajeanbaptiste@gmail.com</p>
                   </div>
                 </div>
                 
@@ -560,7 +560,7 @@ const Landing = () => {
                   <span className="text-blue">KNAX_250</span><br />
                   <span className="text-gold">TECHNOLOGY Ltd</span>
                 </h3>
-                <p>Building tomorrow's tech professionals today.</p>
+                <p>We Have Solutions You Need.</p>
                 <div className="social-links">
                   <a 
                     href="https://www.instagram.com/knax_250" 
@@ -597,9 +597,9 @@ const Landing = () => {
               <div className="footer-contact">
                 <h4>Contact Info</h4>
                 <ul>
-                  <li><FaMapMarkerAlt /> ATENE Building, Kigali</li>
+                  <li><FaMapMarkerAlt /> ATHENE Building, Kigali</li>
                   <li><FaPhone /> 0782562906</li>
-                  <li><FaEnvelope /> nicjbdede@gmail.com</li>
+                  <li><FaEnvelope /> niyikorajeanbaptiste@gmail.com</li>
                 </ul>
               </div>
             </div>

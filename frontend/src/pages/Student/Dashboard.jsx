@@ -238,11 +238,46 @@ const StudentDashboard = () => {
 };
 
 // ============================================
-// OVERVIEW SECTION
+// OVERVIEW SECTION - WITH NOTIFICATIONS
 // ============================================
 const OverviewSection = ({ user, registration, attendance, fallbackImages, departmentImages }) => {
   const today = new Date();
   const currentDept = registration?.department || user?.department;
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get('/announcements/my-announcements');
+      setNotifications(response.data.announcements || []);
+      setUnreadCount(response.data.unreadCount || 0);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // Demo data if API fails
+      setNotifications([
+        {
+          _id: '1',
+          title: 'Welcome to KNAX250!',
+          content: 'Thank you for joining us. Please complete your registration to get started.',
+          type: 'general',
+          createdAt: new Date()
+        }
+      ]);
+    }
+  };
+
+  const markAsRead = async (id) => {
+    try {
+      await api.patch(`/announcements/${id}/read`);
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
 
   const calculateAttendanceStats = () => {
     const total = attendance.length;
@@ -265,6 +300,19 @@ const OverviewSection = ({ user, registration, attendance, fallbackImages, depar
         return <span className="badge badge-warning"><FaHourglassHalf /> Pending</span>;
       default:
         return <span className="badge badge-info">{status}</span>;
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'urgent':
+        return <FaTimesCircle style={{ color: '#f44336' }} />;
+      case 'event':
+        return <FaCalendarCheck style={{ color: '#2196F3' }} />;
+      case 'reminder':
+        return <FaClock style={{ color: '#FF9800' }} />;
+      default:
+        return <FaBell style={{ color: '#4CAF50' }} />;
     }
   };
 
@@ -334,6 +382,38 @@ const OverviewSection = ({ user, registration, attendance, fallbackImages, depar
             <div className="stat-info">
               <h3>{stats.absent}</h3>
               <p>Days Absent</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Section */}
+      {notifications.length > 0 && (
+        <div className="overview-card notifications-card">
+          <div className="card-header">
+            <h2><FaBell /> Announcements</h2>
+            {unreadCount > 0 && <span className="unread-badge">{unreadCount} new</span>}
+          </div>
+          <div className="card-body">
+            <div className="notifications-list">
+              {notifications.slice(0, 5).map((notification) => (
+                <div 
+                  key={notification._id} 
+                  className={`notification-item ${notification.type}`}
+                  onClick={() => markAsRead(notification._id)}
+                >
+                  <div className="notification-icon">
+                    {getNotificationIcon(notification.type)}
+                  </div>
+                  <div className="notification-content">
+                    <h4>{notification.title}</h4>
+                    <p>{notification.content?.substring(0, 100)}...</p>
+                    <span className="notification-date">
+                      {new Date(notification.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

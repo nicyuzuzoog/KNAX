@@ -1,49 +1,13 @@
-// context/AuthContext.js
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
+// src/context/AuthContext.js
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
-
-// API base URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-// Create axios instance
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add request interceptor for debugging
-api.interceptors.request.use(
-  config => {
-    console.log('📤 API Request:', config.method.toUpperCase(), config.url);
-    console.log('📦 Request data:', config.data);
-    return config;
-  },
-  error => {
-    console.error('❌ Request error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor for debugging
-api.interceptors.response.use(
-  response => {
-    console.log('📥 API Response:', response.status, response.data);
-    return response;
-  },
-  error => {
-    console.error('❌ Response error:', error.response?.status, error.response?.data);
-    return Promise.reject(error);
-  }
-);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
@@ -51,134 +15,131 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Set up axios interceptor for auth token
+  // Initialize auth on app load
   useEffect(() => {
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete api.defaults.headers.common['Authorization'];
-    }
-  }, [token]);
-
-  // Check if user is logged in on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const savedToken = localStorage.getItem('token');
-      if (savedToken) {
-        try {
-          api.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-          const response = await api.get('/auth/me');
-          const userData = response.data.user || response.data;
-          setUser(userData);
-          setToken(savedToken);
-          console.log('✅ Auth check successful:', userData.email);
-        } catch (error) {
-          console.error('❌ Auth check failed:', error.response?.status);
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
+    initializeAuth();
   }, []);
 
-  const register = async (userData) => {
+  const initializeAuth = async () => {
     try {
-      console.log('🔄 Starting registration process...');
-      
-      // Validate data before sending
-      if (!userData.fullName || !userData.email || !userData.password || !userData.phone || userData.age === undefined) {
-        throw new Error('Missing required fields');
-      }
+      const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-      // Ensure age is a number
-      const registrationData = {
-        ...userData,
-        age: parseInt(userData.age, 10),
-        email: userData.email.toLowerCase().trim()
-      };
+      console.log('🔄 Initializing auth...');
 
-      console.log('📤 Sending registration data:', { ...registrationData, password: '***' });
+      if (token && storedUser) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+        
+        console.log('✅ User restored from storage:', parsedUser.email);
 
-      const response = await api.post('/auth/register', registrationData);
-
-      console.log('✅ Registration successful!');
-
-      const { token: newToken, user: newUser } = response.data;
-
-      // Save token and update state
-      localStorage.setItem('token', newToken);
-      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      setToken(newToken);
-      setUser(newUser);
-
-      return response.data;
-    } catch (error) {
-      console.error('❌ Registration failed:', error);
-      
-      // Enhanced error logging
-      if (error.response) {
-        console.error('Server responded with:', error.response.status, error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
+        // Verify token with backend
+        try {
+          const response = await api.get('/auth/me');
+          if (response.data.user) {
+            setUser(response.data.user);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            console.log('✅ Token verified with backend');
+          }
+        } catch (verifyError) {
+          console.log('⚠️ Token verification failed, clearing auth');
+          logout();
+        }
       } else {
-        console.error('Error setting up request:', error.message);
+        console.log('ℹ️ No stored auth found');
       }
-      
-      throw error;
+    } catch (error) {
+      console.error('❌ Auth initialization error:', error);
+      logout();
+    } finally {
+      setLoading(false);
     }
   };
 
   const login = async (credentials) => {
     try {
-      console.log('🔄 Starting login process...');
+      console.log('🔐 Attempting login...');
+      
+      const response = await api.post('/auth/login', credentials);
+      const { token, user: userData } = response.data;
 
-      const loginData = {
-        email: credentials.email.trim().toLowerCase(),
-        password: credentials.password
-      };
+      if (!token || !userData) {
+        throw new Error('Invalid response from server');
+      }
 
-      const response = await api.post('/auth/login', loginData);
-
-      console.log('✅ Login successful!');
-
-      const { token: newToken, user: newUser } = response.data;
-
-      // Save token and update state
-      localStorage.setItem('token', newToken);
-      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      setToken(newToken);
-      setUser(newUser);
-
+      // Store token and user
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Set token in API headers
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Update state
+      setUser(userData);
+      setIsAuthenticated(true);
+      
+      console.log('✅ Login successful:', userData.email);
+      console.log('   Role:', userData.role);
+      
       return response.data;
     } catch (error) {
-      console.error('❌ Login failed:', error);
+      console.error('❌ Login error:', error);
+      throw error;
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      console.log('📝 Attempting registration...');
+      
+      const response = await api.post('/auth/register', userData);
+      const { token, user: newUser } = response.data;
+
+      if (token && newUser) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(newUser);
+        setIsAuthenticated(true);
+      }
+
+      console.log('✅ Registration successful');
+      return response.data;
+    } catch (error) {
+      console.error('❌ Registration error:', error);
       throw error;
     }
   };
 
   const logout = () => {
     console.log('👋 Logging out...');
+    
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete api.defaults.headers.common['Authorization'];
-    setToken(null);
+    
     setUser(null);
+    setIsAuthenticated(false);
+  };
+
+  const updateUser = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const value = {
     user,
     loading,
-    token,
-    register,
+    isAuthenticated,
     login,
     logout,
-    isAuthenticated: !!user,
-    api
+    register,
+    updateUser
   };
 
   return (

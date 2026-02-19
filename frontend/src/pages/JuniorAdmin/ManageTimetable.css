@@ -1,0 +1,157 @@
+/* src/pages/JuniorAdmin/ManageTimetable.css */
+.timetable-page {
+  padding: 20px;
+}
+
+.day-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+}
+
+.day-tab {
+  padding: 10px 20px;
+  border: none;
+  background: #f5f5f5;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.day-tab:hover {
+  background: #e0e0e0;
+}
+
+.day-tab.active {
+  background: #1976D2;
+  color: white;
+}
+
+.timetable-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.shift-column {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.shift-header {
+  padding: 15px 20px;
+  margin: 0;
+  font-size: 1rem;
+  color: white;
+}
+
+.shift-header.morning {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+}
+
+.shift-header.afternoon {
+  background: linear-gradient(135deg, #673AB7, #512DA8);
+}
+
+.entries-list {
+  padding: 15px;
+}
+
+.timetable-entry {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.entry-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1976D2;
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 110px;
+}
+
+.entry-details {
+  flex: 1;
+}
+
+.entry-details h4 {
+  margin: 0 0 5px;
+  color: #333;
+  font-size: 1rem;
+}
+
+.entry-details .instructor,
+.entry-details .room {
+  margin: 3px 0;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.entry-actions button {
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s;
+}
+
+.entry-actions button:hover {
+  color: #1976D2;
+}
+
+.no-entries {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .timetable-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .day-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 10px;
+  }
+
+  .day-tab {
+    white-space: nowrap;
+  }
+
+  .timetable-entry {
+    flex-direction: column;
+  }
+
+  .entry-time {
+    min-width: auto;
+  }
+}

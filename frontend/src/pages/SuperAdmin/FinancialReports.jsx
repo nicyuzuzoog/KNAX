@@ -1,34 +1,27 @@
+// pages/SuperAdmin/FinancialReports.jsx
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import api from '../../services/api';
 import Loader from '../../components/Loader/Loader';
-import { 
-  FaMoneyBillWave, 
-  FaChartLine, 
-  FaCalendar,
-  FaDownload,
-  FaUsers
-} from 'react-icons/fa';
+import { FaMoneyBillWave, FaChartLine, FaDownload, FaCalendarAlt } from 'react-icons/fa';
 import './FinancialReports.css';
 
 const FinancialReports = () => {
   const [stats, setStats] = useState(null);
-  const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchFinancialStats();
+  }, [dateRange]);
 
-  const fetchData = async () => {
+  const fetchFinancialStats = async () => {
     try {
-      const [statsRes, regRes] = await Promise.all([
-        api.get('/admin/dashboard-stats'),
-        api.get('/registrations?status=approved')
-      ]);
-      setStats(statsRes.data);
-      setRegistrations(regRes.data);
+      const response = await api.get('/admin/financial-stats', { params: dateRange });
+      setStats(response.data);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -41,116 +34,82 @@ const FinancialReports = () => {
       style: 'currency',
       currency: 'RWF',
       minimumFractionDigits: 0
-    }).format(amount);
+    }).format(amount || 0);
   };
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <Loader />
-      </AdminLayout>
-    );
-  }
+  if (loading) return <AdminLayout><Loader /></AdminLayout>;
 
   return (
     <AdminLayout>
-      <div className="financial-page">
+      <div className="financial-reports-page">
         <div className="page-header">
           <div>
             <h1><FaMoneyBillWave /> Financial Reports</h1>
-            <p>Track earnings and revenue statistics</p>
+            <p>View earnings and revenue statistics</p>
           </div>
-          <Link to="/super-admin/download-reports" className="btn btn-primary">
-            <FaDownload /> Download Reports
-          </Link>
+          <button className="btn btn-primary" onClick={() => window.print()}>
+            <FaDownload /> Export Report
+          </button>
         </div>
 
-        {/* Total Earnings */}
-        <div className="earnings-banner">
-          <div className="earnings-content">
-            <FaMoneyBillWave className="earnings-icon" />
+        <div className="date-filters card">
+          <div className="date-filter-group">
+            <label><FaCalendarAlt /> Start Date:</label>
+            <input
+              type="date"
+              value={dateRange.startDate}
+              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
+            />
+          </div>
+          <div className="date-filter-group">
+            <label>End Date:</label>
+            <input
+              type="date"
+              value={dateRange.endDate}
+              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div className="revenue-cards">
+          <div className="revenue-card total">
+            <FaMoneyBillWave className="revenue-icon" />
             <div>
-              <span className="earnings-label">Total Earnings (All Time)</span>
-              <h2>{formatCurrency(stats?.totalEarnings || 0)}</h2>
-              <span className="earnings-count">
-                From {stats?.approvedRegistrations || 0} approved registrations
-              </span>
+              <h3>{formatCurrency(stats?.totalRevenue || 0)}</h3>
+              <p>Total Revenue</p>
+            </div>
+          </div>
+          <div className="revenue-card pending">
+            <FaChartLine className="revenue-icon" />
+            <div>
+              <h3>{formatCurrency(stats?.pendingRevenue || 0)}</h3>
+              <p>Pending Payments</p>
             </div>
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="finance-stats-row">
-          <div className="finance-stat-card">
-            <FaUsers />
-            <div>
-              <h3>{formatCurrency(30000)}</h3>
-              <p>Fee per Student</p>
-            </div>
-          </div>
-          <div className="finance-stat-card">
-            <FaChartLine />
-            <div>
-              <h3>{stats?.approvedRegistrations || 0}</h3>
-              <p>Approved This Month</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Department Revenue */}
-        <div className="revenue-section card">
-          <h2><FaChartLine /> Revenue by Department</h2>
-          <div className="revenue-grid">
-            {stats?.departmentStats?.map((dept) => (
-              <div key={dept._id} className="revenue-card">
-                <div className="revenue-header">
-                  <h4>{dept._id}</h4>
-                  <span>{dept.count} students</span>
-                </div>
-                <div className="revenue-amount">
-                  {formatCurrency(dept.earnings)}
-                </div>
-                <div className="revenue-bar">
-                  <div 
-                    className="bar-fill"
-                    style={{ width: `${(dept.earnings / (stats?.totalEarnings || 1)) * 100}%` }}
-                  ></div>
-                </div>
-                <span className="revenue-percent">
-                  {((dept.earnings / (stats?.totalEarnings || 1)) * 100).toFixed(1)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="transactions-section card">
-          <h2>Recent Transactions</h2>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Student</th>
-                  <th>Department</th>
-                  <th>Amount</th>
-                  <th>Status</th>
+        <div className="dept-revenue-table card">
+          <h2>Revenue by Department</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>Students</th>
+                <th>Revenue</th>
+                <th>Percentage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats?.departmentRevenue?.map(dept => (
+                <tr key={dept._id}>
+                  <td><span className={`dept-badge ${dept._id.toLowerCase()}`}>{dept._id}</span></td>
+                  <td>{dept.count}</td>
+                  <td>{formatCurrency(dept.revenue)}</td>
+                  <td>{((dept.revenue / stats.totalRevenue) * 100).toFixed(1)}%</td>
                 </tr>
-              </thead>
-              <tbody>
-                {registrations.slice(0, 10).map((reg) => (
-                  <tr key={reg._id}>
-                    <td>{new Date(reg.approvedAt || reg.createdAt).toLocaleDateString()}</td>
-                    <td>{reg.student?.fullName}</td>
-                    <td><span className="dept-tag">{reg.department}</span></td>
-                    <td className="amount">{formatCurrency(30000)}</td>
-                    <td><span className="paid-badge">Paid</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </AdminLayout>

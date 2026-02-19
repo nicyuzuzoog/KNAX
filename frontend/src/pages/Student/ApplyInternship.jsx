@@ -1,174 +1,113 @@
-// pages/ApplyInternship/ApplyInternship.jsx
+// src/pages/Student/ApplyInternship.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import Loader from '../../components/Loader/Loader';
 import { toast } from 'react-toastify';
 import {
-  FaClipboardList,
-  FaSchool,
-  FaGraduationCap,
   FaBuilding,
-  FaReceipt,
-  FaUpload,
-  FaCheck,
-  FaInfoCircle,
+  FaSchool,
   FaPhone,
   FaClock,
-  FaSun,
-  FaMoon
+  FaCheckCircle,
+  FaArrowRight,
+  FaArrowLeft,
+  FaInfoCircle,
+  FaGraduationCap,
+  FaUserGraduate,
+  FaMoneyBillWave
 } from 'react-icons/fa';
 import './ApplyInternship.css';
 
-const departments = [
-  { id: 'NIT', name: 'Network & IT', icon: '🌐', description: 'Learn networking, cybersecurity, and IT infrastructure' },
-  { id: 'SOD', name: 'Software Development', icon: '💻', description: 'Master programming, web & mobile development' },
-  { id: 'ACCOUNTING', name: 'Accounting', icon: '📊', description: 'Financial management and bookkeeping' },
-  { id: 'CSA', name: 'Computer Systems Administration', icon: '🖥️', description: 'System administration and hardware maintenance' },
-  { id: 'ETE', name: 'Electronics & Telecommunications', icon: '📡', description: 'Electronics repair and telecom systems' }
-];
-
-const shifts = [
-  { id: 'morning', name: 'Morning Shift', time: '8:00 AM - 12:00 PM', icon: <FaSun /> },
-  { id: 'afternoon', name: 'Afternoon Shift', time: '2:00 PM - 6:00 PM', icon: <FaMoon /> }
-];
-
 const ApplyInternship = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
   const [schools, setSchools] = useState([]);
-  const [filteredSchools, setFilteredSchools] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [existingRegistration, setExistingRegistration] = useState(null);
+  const [step, setStep] = useState(1);
+  
   const [formData, setFormData] = useState({
     department: '',
-    schoolId: '',
-    classId: '',
+    school: '',
     parentPhone: '',
-    shift: '',
-    receipt: null
+    shift: ''
   });
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [step, setStep] = useState(1);
+
+  const departments = [
+    { id: 'SOD', name: 'Software Development', icon: '💻', description: 'Web & Mobile Development', color: '#3b82f6' },
+    { id: 'NIT', name: 'Networking & IT', icon: '🌐', description: 'Infrastructure & Security', color: '#10b981' },
+    { id: 'ACCOUNTING', name: 'Accounting', icon: '📊', description: 'Financial Management', color: '#f59e0b' },
+    { id: 'CSA', name: 'Computer Systems Administration', icon: '🖥️', description: 'System Administration', color: '#8b5cf6' },
+    { id: 'ETE', name: 'Electronics & Telecommunications', icon: '📡', description: 'Electronics Repair', color: '#ef4444' }
+  ];
+
+  const shifts = [
+    { id: 'morning', name: 'Morning Shift', time: '8:00 AM - 12:00 PM', icon: '🌅', description: 'Perfect for early birds' },
+    { id: 'afternoon', name: 'Afternoon Shift', time: '2:00 PM - 6:00 PM', icon: '🌇', description: 'Ideal for flexible schedules' }
+  ];
 
   useEffect(() => {
-    fetchInitialData();
+    fetchSchools();
+    checkExistingRegistration();
   }, []);
 
-  // Filter schools when department changes
-  useEffect(() => {
-    if (formData.department && schools.length > 0) {
-      const filtered = schools.filter(school => 
-        school.departments && school.departments.includes(formData.department)
-      );
-      setFilteredSchools(filtered);
-      
-      // Reset school and class if current selection doesn't have the department
-      if (formData.schoolId) {
-        const currentSchool = schools.find(s => s._id === formData.schoolId);
-        if (currentSchool && !currentSchool.departments?.includes(formData.department)) {
-          setFormData(prev => ({ ...prev, schoolId: '', classId: '' }));
-          setClasses([]);
-        }
-      }
-    } else {
-      setFilteredSchools([]);
-    }
-  }, [formData.department, schools]);
-
-  const fetchInitialData = async () => {
+  const fetchSchools = async () => {
     try {
-      const [schoolsRes, regRes] = await Promise.all([
-        api.get('/schools'),
-        api.get('/registrations/my-registration')
+      const res = await api.get('/schools');
+      setSchools(res.data || []);
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+      // Demo schools if API fails
+      setSchools([
+        { _id: '1', name: 'Lycée de Kigali' },
+        { _id: '2', name: 'College Saint André' },
+        { _id: '3', name: 'IPRC Kigali' },
+        { _id: '4', name: 'GS Remera' }
       ]);
-      setSchools(schoolsRes.data);
-      setExistingRegistration(regRes.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoadingData(false);
     }
   };
 
-  const fetchClasses = async (schoolId) => {
+  const checkExistingRegistration = async () => {
     try {
-      const response = await api.get(`/schools/${schoolId}/classes`);
-      setClasses(response.data);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      toast.error('Failed to load classes');
-    }
-  };
-
-  const handleSchoolChange = (e) => {
-    const schoolId = e.target.value;
-    setFormData({ ...formData, schoolId, classId: '' });
-    if (schoolId) {
-      fetchClasses(schoolId);
-    } else {
-      setClasses([]);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('File size must be less than 5MB');
-        return;
+      const res = await api.get('/registrations/my-registration');
+      if (res.data) {
+        toast.info('You already have an active registration');
+        navigate('/student/dashboard');
       }
-      setFormData({ ...formData, receipt: file });
-      setPreviewUrl(URL.createObjectURL(file));
+    } catch (error) {
+      // No existing registration - OK to proceed
     }
   };
 
-  const validatePhone = (phone) => {
-    const phoneRegex = /^(07[2-9]\d{7}|078\d{7})$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate all fields
-    if (!formData.department || !formData.schoolId || !formData.classId || !formData.receipt) {
-      toast.error('Please fill in all fields and upload receipt');
+    
+    if (!formData.department || !formData.school || !formData.parentPhone || !formData.shift) {
+      toast.error('Please fill all required fields');
       return;
     }
 
-    if (!formData.parentPhone) {
-      toast.error('Please enter parent/guardian phone number');
-      return;
-    }
-
-    if (!validatePhone(formData.parentPhone)) {
-      toast.error('Please enter a valid Rwandan phone number (07X XXX XXXX)');
-      return;
-    }
-
-    if (!formData.shift) {
-      toast.error('Please select your preferred shift');
+    // Validate phone
+    if (!/^07[0-9]{8}$/.test(formData.parentPhone)) {
+      toast.error('Please enter a valid Rwandan phone number (07XXXXXXXX)');
       return;
     }
 
     setLoading(true);
 
     try {
-      const submitData = new FormData();
-      submitData.append('department', formData.department);
-      submitData.append('schoolId', formData.schoolId);
-      submitData.append('classId', formData.classId);
-      submitData.append('parentPhone', formData.parentPhone.replace(/\s/g, ''));
-      submitData.append('shift', formData.shift);
-      submitData.append('receipt', formData.receipt);
-
-      await api.post('/registrations', submitData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      await api.post('/registrations/apply', {
+        department: formData.department,
+        school: formData.school,
+        parentPhone: formData.parentPhone,
+        shift: formData.shift
       });
 
-      toast.success('Application submitted successfully! Wait for admin approval.');
+      toast.success('Application submitted successfully! Please pay the registration fee and wait for approval.');
       navigate('/student/dashboard');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit application');
@@ -182,8 +121,8 @@ const ApplyInternship = () => {
       toast.error('Please select a department');
       return;
     }
-    if (step === 2 && (!formData.schoolId || !formData.classId)) {
-      toast.error('Please select school and class');
+    if (step === 2 && !formData.shift) {
+      toast.error('Please select a shift');
       return;
     }
     setStep(step + 1);
@@ -191,308 +130,230 @@ const ApplyInternship = () => {
 
   const prevStep = () => setStep(step - 1);
 
-  if (loadingData) {
-    return <Loader />;
-  }
-
-  if (existingRegistration) {
-    return (
-      <div className="apply-page">
-        <div className="apply-container">
-          <div className="already-registered card">
-            <FaCheck className="success-icon" />
-            <h2>Already Registered</h2>
-            <p>You have already applied for an internship.</p>
-            <div className="reg-info">
-              <p><strong>Department:</strong> {existingRegistration.department}</p>
-              <p><strong>Shift:</strong> {existingRegistration.shift || 'Not specified'}</p>
-              <p><strong>Status:</strong> 
-                <span className={`status-badge ${existingRegistration.paymentStatus}`}>
-                  {existingRegistration.paymentStatus}
-                </span>
-              </p>
-            </div>
-            {existingRegistration.paymentStatus === 'pending' && (
-              <div className="pending-notice">
-                <FaClock />
-                <p>Your application is being reviewed. You will receive a notification once approved.</p>
-              </div>
-            )}
-            <button
-              onClick={() => navigate('/student/dashboard')}
-              className="btn btn-primary"
-            >
-              Go to Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return <Loader />;
-  }
+  const totalSteps = 3;
 
   return (
     <div className="apply-page">
+      {/* Back Button */}
+      <Link to="/student/dashboard" className="back-button">
+        <FaArrowLeft /> Back to Dashboard
+      </Link>
+
       <div className="apply-container">
+        {/* Header */}
         <div className="apply-header">
-          <h1><FaClipboardList /> Apply for Internship</h1>
-          <p>Complete the form below to register for an internship program</p>
+          <div className="header-icon">
+            <FaGraduationCap />
+          </div>
+          <h1>Apply for Internship</h1>
+          <p>Join KNAX_250 TECHNOLOGY Ltd and transform your future</p>
         </div>
 
-        {/* Progress Steps */}
-        <div className="progress-steps">
-          <div className={`step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
-            <div className="step-number">1</div>
-            <span>Department</span>
-          </div>
-          <div className="step-line"></div>
-          <div className={`step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
-            <div className="step-number">2</div>
-            <span>School & Class</span>
-          </div>
-          <div className="step-line"></div>
-          <div className={`step ${step >= 3 ? 'active' : ''}`}>
-            <div className="step-number">3</div>
-            <span>Details & Payment</span>
-          </div>
+        {/* Progress Bar */}
+        <div className="progress-bar">
+          {[1, 2, 3].map((num) => (
+            <div key={num} className={`progress-step ${step >= num ? 'active' : ''} ${step > num ? 'completed' : ''}`}>
+              <div className="step-circle">
+                {step > num ? <FaCheckCircle /> : num}
+              </div>
+              <span className="step-label">
+                {num === 1 && 'Department'}
+                {num === 2 && 'Shift'}
+                {num === 3 && 'Details'}
+              </span>
+              {num < totalSteps && <div className="step-line"></div>}
+            </div>
+          ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="apply-form card">
-          {/* Step 1: Select Department */}
+        {/* Form Steps */}
+        <form onSubmit={handleSubmit} className="apply-form">
+          
+          {/* Step 1: Department */}
           {step === 1 && (
-            <div className="form-step">
-              <h2><FaBuilding /> Select Department</h2>
-              <p className="step-description">Choose the internship program you want to join</p>
-              
+            <div className="form-step animate-in">
+              <div className="step-header">
+                <FaBuilding className="step-icon" />
+                <h2>Select Your Department</h2>
+                <p>Choose the field you want to specialize in</p>
+              </div>
               <div className="department-grid">
                 {departments.map((dept) => (
                   <div
                     key={dept.id}
-                    className={`department-option ${formData.department === dept.id ? 'selected' : ''}`}
+                    className={`department-card ${formData.department === dept.id ? 'selected' : ''}`}
                     onClick={() => setFormData({ ...formData, department: dept.id })}
+                    style={{ '--card-color': dept.color }}
                   >
                     <span className="dept-icon">{dept.icon}</span>
                     <h3>{dept.name}</h3>
-                    <p className="dept-description">{dept.description}</p>
-                    <p className="dept-id">{dept.id}</p>
+                    <p>{dept.description}</p>
                     {formData.department === dept.id && (
-                      <div className="selected-check"><FaCheck /></div>
+                      <div className="check-badge">
+                        <FaCheckCircle />
+                      </div>
                     )}
                   </div>
                 ))}
               </div>
-
-              <div className="form-buttons">
-                <button type="button" onClick={nextStep} className="btn btn-primary">
-                  Continue
-                </button>
-              </div>
             </div>
           )}
 
-          {/* Step 2: Select School & Class */}
+          {/* Step 2: Shift */}
           {step === 2 && (
-            <div className="form-step">
-              <h2><FaSchool /> Select School & Class</h2>
-              <p className="step-description">
-                Choose from schools that offer <strong>{formData.department}</strong> program
-              </p>
-
-              <div className="form-group">
-                <label><FaSchool /> School</label>
-                <select
-                  value={formData.schoolId}
-                  onChange={handleSchoolChange}
-                  required
-                >
-                  <option value="">-- Select School --</option>
-                  {filteredSchools.map((school) => (
-                    <option key={school._id} value={school._id}>
-                      {school.name}
-                    </option>
-                  ))}
-                </select>
-                {filteredSchools.length === 0 && formData.department && (
-                  <p className="field-hint warning">
-                    No schools available for {formData.department}. Please contact admin.
-                  </p>
-                )}
+            <div className="form-step animate-in">
+              <div className="step-header">
+                <FaClock className="step-icon" />
+                <h2>Select Your Shift</h2>
+                <p>Choose the time that works best for you</p>
               </div>
-
-              <div className="form-group">
-                <label><FaGraduationCap /> Class</label>
-                <select
-                  value={formData.classId}
-                  onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                  required
-                  disabled={!formData.schoolId}
-                >
-                  <option value="">-- Select Class --</option>
-                  {classes.map((cls) => (
-                    <option key={cls._id} value={cls._id}>
-                      {cls.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {filteredSchools.length === 0 && formData.department && (
-                <div className="info-box warning">
-                  <FaInfoCircle />
-                  <p>No schools offer the <strong>{formData.department}</strong> program. Please contact the admin or select a different department.</p>
-                </div>
-              )}
-
-              <div className="form-buttons">
-                <button type="button" onClick={prevStep} className="btn btn-outline">
-                  Back
-                </button>
-                <button 
-                  type="button" 
-                  onClick={nextStep} 
-                  className="btn btn-primary"
-                  disabled={filteredSchools.length === 0}
-                >
-                  Continue
-                </button>
+              <div className="shift-grid">
+                {shifts.map((shift) => (
+                  <div
+                    key={shift.id}
+                    className={`shift-card ${formData.shift === shift.id ? 'selected' : ''}`}
+                    onClick={() => setFormData({ ...formData, shift: shift.id })}
+                  >
+                    <span className="shift-icon">{shift.icon}</span>
+                    <h3>{shift.name}</h3>
+                    <p className="shift-time">{shift.time}</p>
+                    <p className="shift-desc">{shift.description}</p>
+                    {formData.shift === shift.id && (
+                      <div className="check-badge">
+                        <FaCheckCircle />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Step 3: Contact Info, Shift & Payment */}
+          {/* Step 3: Details & Summary */}
           {step === 3 && (
-            <div className="form-step">
-              <h2><FaReceipt /> Contact, Shift & Payment</h2>
-              <p className="step-description">Complete your registration details and upload payment receipt</p>
-
-              {/* Parent/Guardian Phone */}
-              <div className="form-section">
-                <h3><FaPhone /> Parent/Guardian Contact</h3>
+            <div className="form-step animate-in">
+              <div className="step-header">
+                <FaUserGraduate className="step-icon" />
+                <h2>Complete Your Application</h2>
+                <p>Fill in the remaining details and review your application</p>
+              </div>
+              
+              <div className="form-fields">
                 <div className="form-group">
-                  <label>Parent/Guardian Phone Number *</label>
+                  <label><FaSchool /> School *</label>
+                  <select
+                    name="school"
+                    value={formData.school}
+                    onChange={handleChange}
+                    required
+                    className="form-select"
+                  >
+                    <option value="">Select your school...</option>
+                    {schools.map((school) => (
+                      <option key={school._id} value={school._id}>
+                        {school.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label><FaPhone /> Parent/Guardian Phone *</label>
                   <input
                     type="tel"
-                    placeholder="07X XXX XXXX"
+                    name="parentPhone"
                     value={formData.parentPhone}
-                    onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                    onChange={handleChange}
+                    placeholder="07XXXXXXXX"
                     required
+                    className="form-input"
                   />
-                  <p className="field-hint">We will contact this number for updates about your internship</p>
-                </div>
-              </div>
-
-              {/* Shift Selection */}
-              <div className="form-section">
-                <h3><FaClock /> Select Preferred Shift *</h3>
-                <div className="shift-options">
-                  {shifts.map((shift) => (
-                    <div
-                      key={shift.id}
-                      className={`shift-option ${formData.shift === shift.id ? 'selected' : ''}`}
-                      onClick={() => setFormData({ ...formData, shift: shift.id })}
-                    >
-                      <div className="shift-icon">{shift.icon}</div>
-                      <div className="shift-info">
-                        <h4>{shift.name}</h4>
-                        <p>{shift.time}</p>
-                      </div>
-                      {formData.shift === shift.id && (
-                        <div className="selected-check"><FaCheck /></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Payment Info */}
-              <div className="form-section">
-                <h3><FaReceipt /> Payment Information</h3>
-                <div className="payment-info">
-                  <div className="payment-amount">
-                    <span className="amount-label">Registration Fee</span>
-                    <span className="amount-value">30,000 RWF</span>
-                  </div>
-                  <div className="payment-instructions">
-                    <h4>Payment Instructions:</h4>
-                    <ol>
-                      <li>Pay <strong>30,000 RWF</strong> via Mobile Money or Bank Transfer</li>
-                      <li>MoMo Pay: <strong>0782562906</strong> (KNAX250 TECHNOLOGY)</li>
-                      <li>Take a clear screenshot or photo of your payment receipt</li>
-                      <li>Upload the receipt image below</li>
-                      <li>Wait for admin approval (usually within 24-48 hours)</li>
-                    </ol>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label><FaUpload /> Upload Receipt Photo *</label>
-                  <div className="file-upload-area">
-                    <input
-                      type="file"
-                      id="receipt"
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      required
-                    />
-                    <label htmlFor="receipt" className="file-upload-label">
-                      {previewUrl ? (
-                        <img src={previewUrl} alt="Receipt preview" className="receipt-preview" />
-                      ) : (
-                        <>
-                          <FaUpload className="upload-icon" />
-                          <span>Click to upload or drag and drop</span>
-                          <span className="file-hint">PNG, JPG, PDF up to 5MB</span>
-                        </>
-                      )}
-                    </label>
-                  </div>
+                  <small className="form-hint">Enter a valid Rwandan phone number</small>
                 </div>
               </div>
 
               {/* Application Summary */}
               <div className="application-summary">
-                <h4>Application Summary</h4>
+                <h3>📋 Application Summary</h3>
                 <div className="summary-grid">
                   <div className="summary-item">
-                    <span>Department:</span>
-                    <strong>{formData.department}</strong>
+                    <span className="summary-label">Department</span>
+                    <span className="summary-value">
+                      {departments.find(d => d.id === formData.department)?.name || 'Not selected'}
+                    </span>
                   </div>
                   <div className="summary-item">
-                    <span>School:</span>
-                    <strong>{filteredSchools.find(s => s._id === formData.schoolId)?.name || '-'}</strong>
+                    <span className="summary-label">Shift</span>
+                    <span className="summary-value">
+                      {shifts.find(s => s.id === formData.shift)?.name || 'Not selected'}
+                    </span>
                   </div>
                   <div className="summary-item">
-                    <span>Class:</span>
-                    <strong>{classes.find(c => c._id === formData.classId)?.name || '-'}</strong>
+                    <span className="summary-label">Applicant</span>
+                    <span className="summary-value">{user?.fullName}</span>
                   </div>
                   <div className="summary-item">
-                    <span>Shift:</span>
-                    <strong>{shifts.find(s => s.id === formData.shift)?.name || '-'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Parent Phone:</span>
-                    <strong>{formData.parentPhone || '-'}</strong>
-                  </div>
-                  <div className="summary-item">
-                    <span>Amount:</span>
-                    <strong>30,000 RWF</strong>
+                    <span className="summary-label">Email</span>
+                    <span className="summary-value">{user?.email}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="form-buttons">
-                <button type="button" onClick={prevStep} className="btn btn-outline">
-                  Back
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Submit Application'}
-                </button>
+              {/* Payment Notice */}
+              <div className="payment-notice">
+                <div className="notice-icon">
+                  <FaMoneyBillWave />
+                </div>
+                <div className="notice-content">
+                  <h4>Registration Fee: 30,000 RWF</h4>
+                  <p>After submitting your application, please pay the registration fee to:</p>
+                  <div className="payment-methods">
+                    <div className="payment-method">
+                      <strong>MoMo:</strong> 0782562906 (Jean Baptiste NDUWINGOMA)
+                    </div>
+                    <div className="payment-method">
+                      <strong>Bank:</strong> Bank of Kigali - 100XXXXXXX
+                    </div>
+                  </div>
+                  <p className="notice-note">
+                    <FaInfoCircle /> A Junior Admin will verify your payment and approve your registration.
+                    You will receive an email notification once approved.
+                  </p>
+                </div>
               </div>
             </div>
           )}
+
+          {/* Navigation Buttons */}
+          <div className="form-navigation">
+            {step > 1 && (
+              <button type="button" className="btn btn-secondary" onClick={prevStep}>
+                <FaArrowLeft /> Back
+              </button>
+            )}
+            
+            {step < totalSteps ? (
+              <button type="button" className="btn btn-primary" onClick={nextStep}>
+                Continue <FaArrowRight />
+              </button>
+            ) : (
+              <button 
+                type="submit" 
+                className="btn btn-success"
+                disabled={loading || !formData.school || !formData.parentPhone}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-small"></span> Submitting...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle /> Submit Application
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </div>

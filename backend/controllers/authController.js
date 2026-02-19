@@ -1,121 +1,56 @@
 // controllers/authController.js
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
-
-// Import email service - wrapped in try-catch to prevent crashes
-let emailService;
-try {
-  emailService = require('../services/emailService');
-  console.log('✅ Email service loaded');
-} catch (e) {
-  console.log('⚠️ Email service not available:', e.message);
-  emailService = null;
-}
 
 // Generate JWT Token
 const generateToken = (userId) => {
-  const secret = process.env.JWT_SECRET || 'knax250-fallback-secret';
-  console.log('🔑 Using JWT secret:', secret.substring(0, 5) + '...');
-  return jwt.sign({ userId }, secret, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-  });
+  const secret = process.env.JWT_SECRET || 'knax250-secret-key-2024';
+  return jwt.sign({ userId }, secret, { expiresIn: '7d' });
 };
 
 // Register User
 exports.register = async (req, res) => {
   try {
-    console.log('========================================');
-    console.log('📝 REGISTRATION REQUEST RECEIVED');
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('========================================');
+    console.log('📝 Registration request:', req.body.email);
 
     const { fullName, email, password, phone, age } = req.body;
 
-    // Validate required fields
-    const missing = [];
-    if (!fullName || !fullName.trim()) missing.push('fullName');
-    if (!email || !email.trim()) missing.push('email');
-    if (!password) missing.push('password');
-    if (!phone || !phone.trim()) missing.push('phone');
-    if (age === undefined || age === null || age === '') missing.push('age');
-
-    if (missing.length > 0) {
-      console.log('❌ Missing fields:', missing);
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missing.join(', ')}`,
-        missing,
-        received: Object.keys(req.body)
-      });
+    // Validate
+    if (!fullName || !email || !password || !phone || !age) {
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Validate and convert age
-    const ageNum = parseInt(age);
-    if (isNaN(ageNum)) {
-      console.log('❌ Invalid age:', age);
-      return res.status(400).json({ message: 'Age must be a valid number' });
-    }
-
-    if (ageNum < 16 || ageNum > 100) {
-      console.log('❌ Age out of range:', ageNum);
-      return res.status(400).json({ message: 'Age must be between 16 and 100' });
-    }
-
-    // Validate email format
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    if (!emailRegex.test(email)) {
-      console.log('❌ Invalid email format:', email);
-      return res.status(400).json({ message: 'Please provide a valid email address' });
-    }
-
-    // Validate password length
     if (password.length < 6) {
-      console.log('❌ Password too short');
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
-    // Check if user already exists
+    // Check existing
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
-      console.log('❌ User already exists:', email);
-      return res.status(400).json({ message: 'User already exists with this email' });
+      return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Create new user
+    // Create user (password will be hashed by pre-save hook)
     const user = new User({
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
-      password, // Will be hashed by the model
+      password: password, // Will be hashed by pre-save hook
       phone: phone.trim(),
-      age: ageNum
+      age: parseInt(age),
+      role: 'student',
+      isActive: true
     });
 
     await user.save();
-    console.log('✅ User created successfully:', user.email);
 
-    // Send welcome email (don't block registration if email fails)
-    let emailSent = false;
-    if (emailService && emailService.sendWelcomeEmail) {
-      try {
-        emailSent = await emailService.sendWelcomeEmail(user);
-        console.log(emailSent ? '✅ Welcome email sent' : '⚠️ Welcome email not sent');
-      } catch (emailError) {
-        console.error('❌ Email error:', emailError.message);
-        // Continue - don't fail registration because of email
-      }
-    } else {
-      console.log('⚠️ Email service not available - skipping welcome email');
-    }
-
-    // Generate token
     const token = generateToken(user._id);
 
-    console.log('✅ REGISTRATION COMPLETE');
-    console.log('========================================');
+    console.log('✅ User registered successfully:', user.email);
 
     res.status(201).json({
-      message: emailSent 
-        ? 'Registration successful! Check your email for confirmation.' 
-        : 'Registration successful! Welcome to KNAX250!',
+      message: 'Registration successful!',
       token,
       user: {
         id: user._id,
@@ -123,77 +58,67 @@ exports.register = async (req, res) => {
         email: user.email,
         phone: user.phone,
         age: user.age,
-        role: user.role || 'student'
+        role: user.role,
+        isActive: user.isActive
       }
     });
   } catch (error) {
-    console.error('❌ REGISTRATION ERROR:', error);
-    
-    // Handle duplicate key error
+    console.error('❌ Registration error:', error);
     if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({ 
-        message: `This ${field} is already registered. Please use a different ${field}.` 
-      });
+      return res.status(400).json({ message: 'Email already exists' });
     }
-
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ message: messages.join(', ') });
-    }
-
-    res.status(500).json({ 
-      message: 'Server error during registration. Please try again.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
 // Login User
 exports.login = async (req, res) => {
   try {
+    console.log('\n========================================');
+    console.log('🔐 LOGIN ATTEMPT');
     console.log('========================================');
-    console.log('🔐 LOGIN REQUEST RECEIVED');
-    console.log('Email:', req.body.email);
-    console.log('========================================');
-
+    
     const { email, password } = req.body;
+    
+    console.log('📧 Email:', email);
+    console.log('🔑 Password provided:', password ? 'Yes' : 'No');
 
     // Validate input
     if (!email || !password) {
-      console.log('❌ Missing credentials');
-      return res.status(400).json({ message: 'Please provide email and password' });
+      return res.status(400).json({ message: 'Email and password are required' });
     }
 
     // Find user
     const user = await User.findOne({ email: email.toLowerCase().trim() });
+    
     if (!user) {
       console.log('❌ User not found:', email);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     console.log('✅ User found:', user.email);
+    console.log('   Role:', user.role);
+    console.log('   Active:', user.isActive);
+
+    // Check if active
+    if (!user.isActive) {
+      console.log('❌ Account inactive');
+      return res.status(401).json({ message: 'Your account is inactive. Contact support.' });
+    }
 
     // Check password
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      console.log('❌ Password mismatch for:', email);
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    console.log('🔑 Password match:', isMatch);
 
-    // Check if user is active
-    if (!user.isActive) {
-      console.log('❌ Account deactivated:', email);
-      return res.status(401).json({ message: 'Your account has been deactivated. Please contact support.' });
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     // Generate token
     const token = generateToken(user._id);
 
     console.log('✅ LOGIN SUCCESSFUL');
-    console.log('User:', user.email, '| Role:', user.role);
-    console.log('========================================');
+    console.log('========================================\n');
 
     res.json({
       message: 'Login successful!',
@@ -204,16 +129,16 @@ exports.login = async (req, res) => {
         email: user.email,
         phone: user.phone,
         age: user.age,
-        role: user.role || 'student',
-        department: user.department
+        role: user.role,
+        department: user.department,
+        permissions: user.permissions,
+        isActive: user.isActive
       }
     });
+
   } catch (error) {
     console.error('❌ LOGIN ERROR:', error);
-    res.status(500).json({ 
-      message: 'Server error during login. Please try again.',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ message: 'Server error during login' });
   }
 };
 
@@ -221,7 +146,6 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
-
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -233,12 +157,14 @@ exports.getMe = async (req, res) => {
         email: user.email,
         phone: user.phone,
         age: user.age,
-        role: user.role || 'student',
-        department: user.department
+        role: user.role,
+        department: user.department,
+        permissions: user.permissions,
+        isActive: user.isActive
       }
     });
   } catch (error) {
-    console.error('GetMe error:', error);
+    console.error('Get me error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -247,8 +173,8 @@ exports.getMe = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const { fullName, phone, age } = req.body;
-
     const updates = {};
+    
     if (fullName) updates.fullName = fullName.trim();
     if (phone) updates.phone = phone.trim();
     if (age) updates.age = parseInt(age);
@@ -259,18 +185,7 @@ exports.updateProfile = async (req, res) => {
       { new: true, runValidators: true }
     ).select('-password');
 
-    res.json({
-      message: 'Profile updated successfully',
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        age: user.age,
-        role: user.role,
-        department: user.department
-      }
-    });
+    res.json({ message: 'Profile updated', user });
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -283,28 +198,91 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Please provide both current and new password' });
+      return res.status(400).json({ message: 'Both passwords required' });
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
     const user = await User.findById(req.user._id);
-
-    // Check current password
     const isMatch = await user.comparePassword(currentPassword);
+
     if (!isMatch) {
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
 
-    // Update password
-    user.password = newPassword;
+    user.password = newPassword; // Will be hashed by pre-save hook
     await user.save();
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Forgot Password
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.json({ message: 'If that email exists, a reset link has been sent' });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.passwordResetExpires = Date.now() + 3600000; // 1 hour
+    await user.save({ validateBeforeSave: false });
+
+    // TODO: Send email with reset link
+    console.log('Password reset token for', email, ':', resetToken);
+
+    res.json({ message: 'If that email exists, a reset link has been sent' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Reset Password
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    user.password = password; // Will be hashed by pre-save hook
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(400).json({ message: 'Invalid or expired token' });
   }
 };

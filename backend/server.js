@@ -1,80 +1,127 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
+const connectDB = require('./config/db');
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Connect to MongoDB
+connectDB();
 
-// Create uploads directories
-const dirs = ['uploads', 'uploads/receipts', 'uploads/departments', 'uploads/certificates'];
+// Middleware
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Ensure upload directories exist
+const dirs = ['uploads', 'uploads/receipts', 'uploads/photos'];
 dirs.forEach(dir => {
-  const dirPath = path.join(__dirname, dir);
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 });
 
-// Database connection
-const connectDB = require('./config/db');
-connectDB()
-  .then(() => console.log('✅ Database connected'))
-  .catch(err => console.error('❌ Database error:', err.message));
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const schoolRoutes = require('./routes/schoolRoutes');
-const registrationRoutes = require('./routes/registrationRoutes');
-const attendanceRoutes = require('./routes/attendanceRoutes');
+// Request logging
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path}`);
+  next();
+});
 
-// Try to load timetable routes
-let timetableRoutes;
+// ==========================================
+// ROUTES
+// ==========================================
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/registrations', require('./routes/registrationRoutes'));
+app.use('/api/schools', require('./routes/schoolRoutes'));
+app.use('/api/attendance', require('./routes/attendanceRoutes'));
+app.use('/api/announcements', require('./routes/announcementRoutes'));
+
+// Optional routes - only include if they exist
 try {
-  timetableRoutes = require('./routes/timetableRoutes');
+  app.use('/api/timetable', require('./routes/timetableRoutes'));
 } catch (e) {
-  console.log('Timetable routes not configured');
+  console.log('⚠️ Timetable routes not found, using placeholder');
+  app.use('/api/timetable', (req, res) => res.json({ timetable: [] }));
 }
 
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/schools', schoolRoutes);
-app.use('/api/registrations', registrationRoutes);
-app.use('/api/attendance', attendanceRoutes);
-
-if (timetableRoutes) {
-  app.use('/api/timetable', timetableRoutes);
+try {
+  app.use('/api/shifts', require('./routes/shiftRoutes'));
+} catch (e) {
+  console.log('⚠️ Shift routes not found, using placeholder');
+  app.use('/api/shifts', (req, res) => res.json({ shifts: [] }));
 }
 
-// Test route
-app.get('/api/test', (req, res) => {
+try {
+  app.use('/api/messages', require('./routes/messageRoutes'));
+} catch (e) {
+  app.use('/api/messages', (req, res) => res.json({ messages: [] }));
+}
+
+// Health check
+app.get('/api/health', (req, res) => {
   res.json({ 
-    message: 'KNAX_250 TECHNOLOGY Ltd API is running!', 
-    status: 'OK',
-    timestamp: new Date()
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    routes: [
+      '/api/auth',
+      '/api/admin',
+      '/api/registrations',
+      '/api/schools',
+      '/api/attendance',
+      '/api/announcements'
+    ]
   });
 });
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ message: 'Server error', error: err.message });
+// Test registration routes
+app.get('/api/test-routes', (req, res) => {
+  res.json({
+    message: 'Available registration routes',
+    routes: [
+      'GET    /api/registrations',
+      'GET    /api/registrations/:id',
+      'POST   /api/registrations',
+      'PUT    /api/registrations/:id',
+      'DELETE /api/registrations/:id',
+      'PATCH  /api/registrations/:id/status    <-- Use this!',
+      'PATCH  /api/registrations/:id/approve',
+      'PATCH  /api/registrations/:id/reject'
+    ]
+  });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  console.log(`❌ 404: ${req.method} ${req.path}`);
+  res.status(404).json({ 
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
 });
 
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('❌ Error:', err.message);
+  res.status(err.status || 500).json({ message: err.message || 'Server error' });
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 KNAX_250 Server running on port ${PORT}`);
-  console.log(`📍 API URL: http://localhost:${PORT}`);
-  console.log(`📧 Email: nicjbdede@gmail.com`);
+  console.log('==========================================');
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 API: http://localhost:${PORT}/api`);
+  console.log(`🔧 Test: http://localhost:${PORT}/api/test-routes`);
+  console.log('==========================================');
 });

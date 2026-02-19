@@ -1,157 +1,175 @@
+// components/AdminSidebar/AdminSidebar.jsx
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  FaTachometerAlt, 
-  FaUserShield, 
-  FaSchool, 
+import {
+  FaHome,
   FaClipboardList,
+  FaUserShield,
+  FaSchool,
   FaMoneyBillWave,
   FaCalendarCheck,
+  FaDownload,
   FaSignOutAlt,
   FaBars,
   FaTimes,
-  FaChevronLeft,
-  FaChevronRight,
-  FaDownload,
-  FaCog,
-  FaUser
+  FaGraduationCap,
+  FaUsers
 } from 'react-icons/fa';
 import './AdminSidebar.css';
 
 const AdminSidebar = () => {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  // Super Admin Menu Items
-  const superAdminMenu = [
-    { path: '/super-admin/dashboard', icon: <FaTachometerAlt />, label: 'Dashboard' },
-    { path: '/super-admin/admins', icon: <FaUserShield />, label: 'Manage Admins' },
-    { path: '/super-admin/schools', icon: <FaSchool />, label: 'Schools & Classes' },
-    { path: '/super-admin/registrations', icon: <FaClipboardList />, label: 'Registrations' },
-    { path: '/super-admin/finances', icon: <FaMoneyBillWave />, label: 'Financial Reports' },
-    { path: '/super-admin/settings', icon: <FaCog />, label: 'Settings' },
-  ];
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isJuniorAdmin = user?.role === 'junior_admin';
 
-  // Junior Admin Menu Items - based on permissions
-  const getJuniorAdminMenu = () => {
-    const menu = [
-      { path: '/admin/dashboard', icon: <FaTachometerAlt />, label: 'Dashboard' },
-    ];
-
-    // Check permissions from user object
-    if (user?.permissions?.canViewRegistrations !== false) {
-      menu.push({ path: '/admin/registrations', icon: <FaClipboardList />, label: 'Registrations' });
-    }
-
-    if (user?.permissions?.canManageAttendance !== false) {
-      menu.push({ path: '/admin/attendance', icon: <FaCalendarCheck />, label: 'Attendance' });
-    }
-
-    return menu;
-  };
-
-  const menuItems = user?.role === 'super_admin' ? superAdminMenu : getJuniorAdminMenu();
+  const isActive = (path) => location.pathname.includes(path);
 
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <button 
-        className="mobile-menu-toggle"
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-      >
-        {isMobileOpen ? <FaTimes /> : <FaBars />}
+      {/* Mobile Toggle */}
+      <button className="mobile-toggle" onClick={() => setIsOpen(!isOpen)}>
+        {isOpen ? <FaTimes /> : <FaBars />}
       </button>
 
-      {/* Overlay for mobile */}
-      {isMobileOpen && (
-        <div 
-          className="sidebar-overlay"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
-        {/* Logo Section */}
+      <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
+        {/* Header */}
         <div className="sidebar-header">
-          <div className="logo-container">
-            <span className="logo-text" style={{ color: '#1976D2' }}>
-              {isCollapsed ? 'K' : 'KNAX250'}
-            </span>
+          <div className="sidebar-logo">
+            <FaGraduationCap />
           </div>
-          <button 
-            className="collapse-btn"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            {isCollapsed ? <FaChevronRight /> : <FaChevronLeft />}
-          </button>
+          <div className="sidebar-brand">
+            <h2>KNAX_250</h2>
+            <span>{isSuperAdmin ? 'Super Admin' : 'Admin'}</span>
+          </div>
         </div>
 
         {/* User Info */}
         <div className="sidebar-user">
           <div className="user-avatar">
-            <FaUser />
+            {user?.fullName?.charAt(0) || 'A'}
           </div>
-          {!isCollapsed && (
-            <div className="user-info">
-              <span className="user-name">{user?.fullName}</span>
-              <span className="user-role">
-                {user?.role === 'super_admin' ? 'Super Admin' : 'Junior Admin'}
-              </span>
-              {user?.department && (
-                <span className="user-dept">{user.department}</span>
-              )}
-            </div>
-          )}
+          <div className="user-info">
+            <h4>{user?.fullName || 'Admin'}</h4>
+            <p>{user?.department || 'All Departments'}</p>
+          </div>
         </div>
 
-        {/* Navigation Menu */}
+        {/* Navigation */}
         <nav className="sidebar-nav">
-          <ul className="nav-list">
-            {menuItems.map((item, index) => (
-              <li key={index} className="nav-item">
-                <NavLink 
-                  to={item.path} 
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                  onClick={() => setIsMobileOpen(false)}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  {!isCollapsed && <span className="nav-label">{item.label}</span>}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          {/* Super Admin Links */}
+          {isSuperAdmin && (
+            <>
+              <Link 
+                to="/super-admin/dashboard" 
+                className={`nav-link ${isActive('/super-admin/dashboard') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaHome />
+                <span>Dashboard</span>
+              </Link>
+
+              <Link 
+                to="/super-admin/admins" 
+                className={`nav-link ${isActive('/super-admin/admins') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaUserShield />
+                <span>Manage Admins</span>
+              </Link>
+
+              <Link 
+                to="/super-admin/schools" 
+                className={`nav-link ${isActive('/super-admin/schools') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaSchool />
+                <span>Manage Schools</span>
+              </Link>
+
+              <Link 
+                to="/super-admin/registrations" 
+                className={`nav-link ${isActive('/super-admin/registrations') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaClipboardList />
+                <span>All Registrations</span>
+              </Link>
+
+              <Link 
+                to="/super-admin/finances" 
+                className={`nav-link ${isActive('/super-admin/finances') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaMoneyBillWave />
+                <span>Financial Reports</span>
+              </Link>
+
+              <Link 
+                to="/super-admin/download-reports" 
+                className={`nav-link ${isActive('/super-admin/download-reports') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaDownload />
+                <span>Download Reports</span>
+              </Link>
+            </>
+          )}
+
+          {/* Junior Admin Links */}
+          {isJuniorAdmin && (
+            <>
+              <Link 
+                to="/admin/dashboard" 
+                className={`nav-link ${isActive('/admin/dashboard') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaHome />
+                <span>Dashboard</span>
+              </Link>
+
+              <Link 
+                to="/admin/registrations" 
+                className={`nav-link ${isActive('/admin/registrations') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaClipboardList />
+                <span>Registrations</span>
+              </Link>
+
+              <Link 
+                to="/admin/attendance" 
+                className={`nav-link ${isActive('/admin/attendance') ? 'active' : ''}`}
+                onClick={() => setIsOpen(false)}
+              >
+                <FaCalendarCheck />
+                <span>Attendance</span>
+              </Link>
+            </>
+          )}
         </nav>
 
-        {/* Download Reports Button (Super Admin Only) */}
-        {user?.role === 'super_admin' && (
-          <div className="sidebar-actions">
-            <NavLink 
-              to="/super-admin/download-reports" 
-              className="action-btn download-btn"
-            >
-              <FaDownload />
-              {!isCollapsed && <span>Download Reports</span>}
-            </NavLink>
-          </div>
-        )}
-
-        {/* Logout Button */}
+        {/* Logout */}
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>
             <FaSignOutAlt />
-            {!isCollapsed && <span>Logout</span>}
+            <span>Logout</span>
           </button>
         </div>
       </aside>
+
+      {/* Overlay for mobile */}
+      {isOpen && <div className="sidebar-overlay" onClick={() => setIsOpen(false)} />}
     </>
   );
 };
