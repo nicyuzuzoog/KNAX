@@ -1,214 +1,246 @@
 // src/pages/SuperAdmin/Announcements.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import api from '../../services/api';
+import Loader from '../../components/Loader/Loader';
 import { toast } from 'react-toastify';
-import { 
-  FaBell, 
-  FaPlus, 
-  FaEdit, 
-  FaTrash, 
+import {
+  FaBullhorn,
+  FaPlus,
+  FaEdit,
+  FaTrash,
   FaTimes,
-  FaUsers,
-  FaUserGraduate,
-  FaUserShield,
-  FaBuilding,
-  FaCalendarAlt,
-  FaExclamationCircle,
-  FaInfoCircle,
-  FaClock,
   FaSearch,
   FaFilter,
-  FaBullhorn
+  FaCalendar,
+  FaUser,
+  FaBuilding,
+  FaGlobe,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaCheckCircle,
+  FaSync
 } from 'react-icons/fa';
 import './Announcements.css';
 
 const Announcements = () => {
+  const { user } = useAuth();
+  
+  // IMPORTANT: Initialize as empty array
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    type: 'general',
-    targetAudience: 'all',
+    priority: 'normal',
     department: '',
+    targetAudience: 'all',
     expiresAt: ''
   });
 
-  const types = [
-    { value: 'general', label: 'General', icon: FaInfoCircle, color: '#3b82f6' },
-    { value: 'urgent', label: 'Urgent', icon: FaExclamationCircle, color: '#ef4444' },
-    { value: 'event', label: 'Event', icon: FaCalendarAlt, color: '#8b5cf6' },
-    { value: 'reminder', label: 'Reminder', icon: FaClock, color: '#f59e0b' }
-  ];
-
-  const audiences = [
-    { value: 'all', label: 'All Users', icon: FaUsers },
-    { value: 'students', label: 'Students Only', icon: FaUserGraduate },
-    { value: 'admins', label: 'Admins Only', icon: FaUserShield },
-    { value: 'department', label: 'Specific Department', icon: FaBuilding }
-  ];
-
   const departments = ['NIT', 'SOD', 'ACCOUNTING', 'CSA', 'ETE'];
+  const priorities = [
+    { value: 'low', label: 'Low', color: '#10b981' },
+    { value: 'normal', label: 'Normal', color: '#3b82f6' },
+    { value: 'high', label: 'High', color: '#f59e0b' },
+    { value: 'urgent', label: 'Urgent', color: '#ef4444' }
+  ];
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, []);
+  // Safe array helper function
+  const ensureArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data?.announcements && Array.isArray(data.announcements)) return data.announcements;
+    if (data?.data && Array.isArray(data.data)) return data.data;
+    return [];
+  };
 
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
     try {
       const response = await api.get('/announcements');
-      setAnnouncements(response.data || []);
+      console.log('Announcements response:', response.data);
+      
+      // Safely extract array
+      const data = ensureArray(response.data);
+      setAnnouncements(data);
     } catch (error) {
       console.error('Error fetching announcements:', error);
-      // Demo data
-      setAnnouncements([
-        {
-          _id: '1',
-          title: 'Welcome to KNAX250 Internship Program!',
-          content: 'We are excited to welcome all new interns to our program. Please make sure to complete your registration and submit all required documents.',
-          type: 'general',
-          targetAudience: 'all',
-          createdAt: new Date('2024-02-01'),
-          isActive: true
-        },
-        {
-          _id: '2',
-          title: 'Urgent: Schedule Change for SOD Department',
-          content: 'Due to maintenance work, all SOD classes will be held in Lab 2 instead of Lab 1 for the next two weeks starting Monday.',
-          type: 'urgent',
-          targetAudience: 'department',
-          department: 'SOD',
-          createdAt: new Date('2024-02-10'),
-          isActive: true
-        },
-        {
-          _id: '3',
-          title: 'Tech Career Fair - February 25th',
-          content: 'Join us for our annual Tech Career Fair! Meet industry professionals, explore job opportunities, and network with potential employers. All students are encouraged to attend.',
-          type: 'event',
-          targetAudience: 'students',
-          createdAt: new Date('2024-02-05'),
-          expiresAt: new Date('2024-02-26'),
-          isActive: true
-        },
-        {
-          _id: '4',
-          title: 'Reminder: Submit Weekly Reports',
-          content: 'This is a reminder to all interns to submit their weekly progress reports by Friday 5:00 PM. Late submissions will not be accepted.',
-          type: 'reminder',
-          targetAudience: 'students',
-          createdAt: new Date('2024-02-12'),
-          isActive: true
-        }
-      ]);
+      toast.error('Failed to load announcements');
+      setAnnouncements([]); // Reset to empty array
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
 
-    try {
-      if (editingAnnouncement) {
-        await api.put(`/announcements/${editingAnnouncement._id}`, formData);
-        toast.success('Announcement updated successfully!');
-      } else {
-        await api.post('/announcements', formData);
-        toast.success('Announcement posted successfully!');
-      }
-      setShowModal(false);
-      fetchAnnouncements();
-      resetForm();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save announcement');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEdit = (announcement) => {
-    setEditingAnnouncement(announcement);
-    setFormData({
-      title: announcement.title || '',
-      content: announcement.content || '',
-      type: announcement.type || 'general',
-      targetAudience: announcement.targetAudience || 'all',
-      department: announcement.department || '',
-      expiresAt: announcement.expiresAt 
-        ? new Date(announcement.expiresAt).toISOString().split('T')[0] 
-        : ''
-    });
-    setShowModal(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this announcement?')) {
-      try {
-        await api.delete(`/announcements/${id}`);
-        toast.success('Announcement deleted successfully');
-        fetchAnnouncements();
-      } catch (error) {
-        toast.error('Failed to delete announcement');
-      }
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const resetForm = () => {
     setFormData({
       title: '',
       content: '',
-      type: 'general',
-      targetAudience: 'all',
+      priority: 'normal',
       department: '',
+      targetAudience: 'all',
       expiresAt: ''
     });
-    setEditingAnnouncement(null);
+    setSelectedAnnouncement(null);
   };
 
-  const getTypeConfig = (type) => {
-    return types.find(t => t.value === type) || types[0];
+  const openCreateModal = () => {
+    resetForm();
+    setShowModal(true);
   };
 
-  const getAudienceLabel = (audience, department) => {
-    if (audience === 'department' && department) {
-      return `${department} Department`;
+  const openEditModal = (announcement) => {
+    setSelectedAnnouncement(announcement);
+    setFormData({
+      title: announcement.title || '',
+      content: announcement.content || '',
+      priority: announcement.priority || 'normal',
+      department: announcement.department || '',
+      targetAudience: announcement.targetAudience || 'all',
+      expiresAt: announcement.expiresAt ? announcement.expiresAt.split('T')[0] : ''
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim() || !formData.content.trim()) {
+      toast.error('Title and content are required');
+      return;
     }
-    return audiences.find(a => a.value === audience)?.label || audience;
+
+    setSubmitting(true);
+    try {
+      if (selectedAnnouncement) {
+        await api.put(`/announcements/${selectedAnnouncement._id}`, formData);
+        toast.success('Announcement updated');
+      } else {
+        await api.post('/announcements', formData);
+        toast.success('Announcement created');
+      }
+      
+      setShowModal(false);
+      resetForm();
+      fetchAnnouncements();
+    } catch (error) {
+      console.error('Error saving announcement:', error);
+      toast.error(error.response?.data?.message || 'Failed to save announcement');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const filteredAnnouncements = announcements.filter(ann => {
+  const openDeleteModal = (announcement) => {
+    setSelectedAnnouncement(announcement);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    setSubmitting(true);
+    try {
+      await api.delete(`/announcements/${selectedAnnouncement._id}`);
+      toast.success('Announcement deleted');
+      setShowDeleteModal(false);
+      fetchAnnouncements();
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      toast.error('Failed to delete announcement');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // SAFE FILTERING
+  const safeAnnouncements = ensureArray(announcements);
+  const filteredAnnouncements = safeAnnouncements.filter(ann => {
     const matchesSearch = 
       ann.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ann.content?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || ann.type === filterType;
-    return matchesSearch && matchesType;
+    const matchesPriority = !priorityFilter || ann.priority === priorityFilter;
+    const matchesDepartment = !departmentFilter || ann.department === departmentFilter || ann.targetAudience === 'all';
+    
+    return matchesSearch && matchesPriority && matchesDepartment;
   });
+
+  const getPriorityColor = (priority) => {
+    const found = priorities.find(p => p.value === priority);
+    return found ? found.color : '#3b82f6';
+  };
+
+  const getPriorityIcon = (priority) => {
+    switch (priority) {
+      case 'urgent': return <FaExclamationTriangle />;
+      case 'high': return <FaExclamationTriangle />;
+      case 'normal': return <FaInfoCircle />;
+      case 'low': return <FaCheckCircle />;
+      default: return <FaInfoCircle />;
+    }
+  };
+
+  if (loading) {
+    return <AdminLayout><Loader /></AdminLayout>;
+  }
 
   return (
     <AdminLayout>
       <div className="announcements-page">
-        {/* Page Header */}
+        {/* Header */}
         <div className="page-header">
-          <div className="page-header-content">
-            <h1><FaBell /> Announcements</h1>
-            <p>Create and manage announcements for users</p>
+          <div className="header-content">
+            <h1><FaBullhorn /> Announcements</h1>
+            <p>Create and manage announcements for students and staff</p>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            <FaPlus /> New Announcement
-          </button>
+          <div className="header-actions">
+            <button className="btn btn-outline" onClick={fetchAnnouncements}>
+              <FaSync /> Refresh
+            </button>
+            <button className="btn btn-primary" onClick={openCreateModal}>
+              <FaPlus /> New Announcement
+            </button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="stats-row">
+          <div className="stat-card">
+            <h3>{safeAnnouncements.length}</h3>
+            <p>Total Announcements</p>
+          </div>
+          <div className="stat-card">
+            <h3>{safeAnnouncements.filter(a => a.priority === 'urgent').length}</h3>
+            <p>Urgent</p>
+          </div>
+          <div className="stat-card">
+            <h3>{safeAnnouncements.filter(a => a.priority === 'high').length}</h3>
+            <p>High Priority</p>
+          </div>
+          <div className="stat-card">
+            <h3>{safeAnnouncements.filter(a => a.targetAudience === 'all').length}</h3>
+            <p>Global</p>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="filters-card">
+        <div className="filters-section">
           <div className="search-box">
             <FaSearch />
             <input
@@ -217,137 +249,117 @@ const Announcements = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            {searchTerm && (
-              <button className="clear-search" onClick={() => setSearchTerm('')}>
-                <FaTimes />
-              </button>
-            )}
           </div>
-          <div className="filter-item">
-            <label><FaFilter /> Type:</label>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <option value="all">All Types</option>
-              {types.map(type => (
-                <option key={type.value} value={type.value}>{type.label}</option>
+          <div className="filter-box">
+            <FaFilter />
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+            >
+              <option value="">All Priorities</option>
+              {priorities.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-box">
+            <FaBuilding />
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              <option value="">All Departments</option>
+              {departments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="announcement-stats">
-          {types.map(type => {
-            const count = announcements.filter(a => a.type === type.value).length;
-            const TypeIcon = type.icon;
-            return (
-              <div 
-                key={type.value} 
-                className={`stat-chip ${type.value}`}
-                onClick={() => setFilterType(type.value)}
-              >
-                <TypeIcon />
-                <span>{type.label}</span>
-                <span className="count">{count}</span>
-              </div>
-            );
-          })}
-        </div>
-
         {/* Announcements Grid */}
         <div className="announcements-grid">
-          {loading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Loading announcements...</p>
-            </div>
-          ) : filteredAnnouncements.length > 0 ? (
-            filteredAnnouncements.map((announcement) => {
-              const typeConfig = getTypeConfig(announcement.type);
-              const TypeIcon = typeConfig.icon;
-              return (
-                <div 
-                  key={announcement._id} 
-                  className={`announcement-card ${announcement.type}`}
-                >
-                  <div className="announcement-type-badge" style={{ background: typeConfig.color }}>
-                    <TypeIcon />
-                    <span>{typeConfig.label}</span>
-                  </div>
-                  
-                  <div className="announcement-header">
-                    <h3>{announcement.title}</h3>
-                    <div className="announcement-actions">
-                      <button 
-                        className="btn-icon edit"
-                        onClick={() => handleEdit(announcement)}
-                        title="Edit"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button 
-                        className="btn-icon delete"
-                        onClick={() => handleDelete(announcement._id)}
-                        title="Delete"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <p className="announcement-content">{announcement.content}</p>
-                  
-                  <div className="announcement-footer">
-                    <div className="announcement-meta">
-                      <span className="audience-badge">
-                        <FaUsers />
-                        {getAudienceLabel(announcement.targetAudience, announcement.department)}
-                      </span>
-                      <span className="date">
-                        <FaCalendarAlt />
-                        {new Date(announcement.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {announcement.expiresAt && (
-                      <span className="expires">
-                        <FaClock />
-                        Expires: {new Date(announcement.expiresAt).toLocaleDateString()}
-                      </span>
-                    )}
+          {filteredAnnouncements.length > 0 ? (
+            filteredAnnouncements.map(announcement => (
+              <div 
+                key={announcement._id} 
+                className="announcement-card"
+                style={{ borderLeftColor: getPriorityColor(announcement.priority) }}
+              >
+                <div className="announcement-header">
+                  <span 
+                    className="priority-badge"
+                    style={{ background: getPriorityColor(announcement.priority) }}
+                  >
+                    {getPriorityIcon(announcement.priority)}
+                    {announcement.priority}
+                  </span>
+                  <div className="announcement-actions">
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => openEditModal(announcement)}
+                    >
+                      <FaEdit />
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-danger"
+                      onClick={() => openDeleteModal(announcement)}
+                    >
+                      <FaTrash />
+                    </button>
                   </div>
                 </div>
-              );
-            })
+                
+                <h3>{announcement.title}</h3>
+                <p className="announcement-content">{announcement.content}</p>
+                
+                <div className="announcement-meta">
+                  <span>
+                    <FaCalendar /> {new Date(announcement.createdAt).toLocaleDateString()}
+                  </span>
+                  <span>
+                    {announcement.targetAudience === 'all' ? (
+                      <><FaGlobe /> All</>
+                    ) : (
+                      <><FaBuilding /> {announcement.department}</>
+                    )}
+                  </span>
+                  {announcement.createdBy && (
+                    <span>
+                      <FaUser /> {announcement.createdBy?.fullName || 'Admin'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
           ) : (
             <div className="empty-state">
               <FaBullhorn />
               <h3>No Announcements Found</h3>
-              <p>Create your first announcement to get started</p>
-              <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                <FaPlus /> Create Announcement
-              </button>
+              <p>Click "New Announcement" to create one</p>
             </div>
           )}
         </div>
 
-        {/* Modal */}
+        {/* Create/Edit Modal */}
         {showModal && (
-          <div className="modal-overlay" onClick={() => setShowModal(false)}>
-            <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-overlay" onClick={() => !submitting && setShowModal(false)}>
+            <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>{editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}</h2>
-                <button className="modal-close" onClick={() => { setShowModal(false); resetForm(); }}>
+                <h2>{selectedAnnouncement ? 'Edit Announcement' : 'Create Announcement'}</h2>
+                <button className="close-btn" onClick={() => setShowModal(false)} disabled={submitting}>
                   <FaTimes />
                 </button>
               </div>
               
-              <form onSubmit={handleSubmit} className="modal-form">
+              <form onSubmit={handleSubmit} className="modal-body">
                 <div className="form-group">
                   <label>Title *</label>
                   <input
                     type="text"
+                    name="title"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Enter announcement title"
+                    onChange={handleChange}
+                    placeholder="Announcement title"
                     required
                   />
                 </div>
@@ -355,23 +367,25 @@ const Announcements = () => {
                 <div className="form-group">
                   <label>Content *</label>
                   <textarea
+                    name="content"
                     value={formData.content}
-                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                    placeholder="Write your announcement content..."
-                    rows="5"
+                    onChange={handleChange}
+                    placeholder="Announcement content..."
+                    rows={6}
                     required
                   />
                 </div>
 
-                <div className="form-row two-cols">
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Type</label>
+                    <label>Priority</label>
                     <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      name="priority"
+                      value={formData.priority}
+                      onChange={handleChange}
                     >
-                      {types.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
+                      {priorities.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
                       ))}
                     </select>
                   </div>
@@ -379,25 +393,27 @@ const Announcements = () => {
                   <div className="form-group">
                     <label>Target Audience</label>
                     <select
+                      name="targetAudience"
                       value={formData.targetAudience}
-                      onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+                      onChange={handleChange}
                     >
-                      {audiences.map(aud => (
-                        <option key={aud.value} value={aud.value}>{aud.label}</option>
-                      ))}
+                      <option value="all">All (Global)</option>
+                      <option value="department">Specific Department</option>
+                      <option value="students">Students Only</option>
+                      <option value="admins">Admins Only</option>
                     </select>
                   </div>
                 </div>
 
                 {formData.targetAudience === 'department' && (
                   <div className="form-group">
-                    <label>Select Department</label>
+                    <label>Department</label>
                     <select
+                      name="department"
                       value={formData.department}
-                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                      required
+                      onChange={handleChange}
                     >
-                      <option value="">Choose department...</option>
+                      <option value="">Select Department</option>
                       {departments.map(dept => (
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
@@ -406,32 +422,58 @@ const Announcements = () => {
                 )}
 
                 <div className="form-group">
-                  <label>Expires On (Optional)</label>
+                  <label>Expires At (Optional)</label>
                   <input
                     type="date"
+                    name="expiresAt"
                     value={formData.expiresAt}
-                    onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                    onChange={handleChange}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
-                <div className="modal-actions">
+                <div className="modal-footer">
                   <button 
                     type="button" 
-                    className="btn btn-secondary"
-                    onClick={() => { setShowModal(false); resetForm(); }}
+                    className="btn btn-outline" 
+                    onClick={() => setShowModal(false)}
+                    disabled={submitting}
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Saving...' : (editingAnnouncement ? 'Update' : 'Post Announcement')}
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? 'Saving...' : (selectedAnnouncement ? 'Update' : 'Create')}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Modal */}
+        {showDeleteModal && (
+          <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+            <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+              <div className="modal-header danger">
+                <h2>Delete Announcement</h2>
+                <button className="close-btn" onClick={() => setShowDeleteModal(false)}>
+                  <FaTimes />
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <p>Are you sure you want to delete "<strong>{selectedAnnouncement?.title}</strong>"?</p>
+                <p className="warning-text">This action cannot be undone.</p>
+              </div>
+
+              <div className="modal-footer">
+                <button className="btn btn-outline" onClick={() => setShowDeleteModal(false)}>
+                  Cancel
+                </button>
+                <button className="btn btn-danger" onClick={handleDelete} disabled={submitting}>
+                  {submitting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
             </div>
           </div>
         )}

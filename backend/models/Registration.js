@@ -1,47 +1,107 @@
-// models/Registration.js
+// backend/models/Registration.js
 const mongoose = require('mongoose');
 
-const registrationSchema = new mongoose.Schema({
+const RegistrationSchema = new mongoose.Schema({
+  // Student Information
+  studentName: {
+    type: String,
+    required: [true, 'Student name is required'],
+    trim: true
+  },
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    lowercase: true,
+    trim: true
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  nationalId: {
+    type: String,
+    trim: true
+  },
+
+  // Reference to User model
   student: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
+
+  // School Information
   school: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'School'
   },
-  class: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class'
+  schoolName: {
+    type: String,
+    trim: true
   },
+
+  // Course/Department
   department: {
     type: String,
-    enum: ['NIT', 'SOD', 'ACCOUNTING', 'CSA', 'ETE'],
-    required: true
+    enum: ['Software Development', 'Networking', 'Accounting', 'Electronics'],
+    required: [true, 'Department is required']
   },
-  shift: {
+  educationLevel: {
     type: String,
-    enum: ['Morning', 'Afternoon', 'Evening'],
-    default: 'Morning'
+    trim: true
   },
+
+  // Internship Details
   startDate: {
     type: Date
   },
   endDate: {
     type: Date
   },
-  amountPaid: {
-    type: Number,
-    default: 30000
+  
+  // FIX: Change the shift enum values to match what's in your database
+  shift: {
+    type: String,
+    enum: ['morning', 'afternoon', 'evening', 'Morning', 'Afternoon', 'Evening'], // Added both cases
+    default: 'morning'
   },
-  receiptPhoto: {
-    type: String
+
+  // Documents/Attachments
+  documents: [{
+    name: String,
+    url: String,
+    type: String,
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
+  // Application Status
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'completed'],
+    default: 'pending'
   },
+
+  // Payment Information
   paymentStatus: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'partial', 'completed', 'Pending', 'Partial', 'Completed'],
     default: 'pending'
+  },
+  amountPaid: {
+    type: Number,
+    default: 0
+  },
+  totalAmount: {
+    type: Number,
+    default: 0
+  },
+
+  // Review/Approval Information
+  reviewNote: {
+    type: String,
+    trim: true
   },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -58,17 +118,23 @@ const registrationSchema = new mongoose.Schema({
     type: Date
   },
   rejectionReason: {
-    type: String
-  },
-  internshipStatus: {
     type: String,
-    enum: ['pending', 'active', 'completed', 'cancelled'],
-    default: 'pending'
+    trim: true
   },
-  createdAt: {
+
+  // Metadata
+  submittedAt: {
     type: Date,
     default: Date.now
   }
+}, {
+  timestamps: true
 });
 
-module.exports = mongoose.model('Registration', registrationSchema);
+// Indexes for better query performance
+RegistrationSchema.index({ status: 1 });
+RegistrationSchema.index({ email: 1 });
+RegistrationSchema.index({ createdAt: -1 });
+RegistrationSchema.index({ department: 1 });
+
+module.exports = mongoose.model('Registration', RegistrationSchema);
