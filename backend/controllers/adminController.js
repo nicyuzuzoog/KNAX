@@ -12,63 +12,38 @@ try {
   emailService = null;
 }
 
-// Create junior admin (Super admin only) - FIXED: No manual password hashing
+// Create junior admin (Super admin only)
 exports.createJuniorAdmin = async (req, res) => {
   try {
-    console.log('========================================');
-    console.log('📝 CREATE JUNIOR ADMIN REQUEST');
-    console.log('Body:', JSON.stringify(req.body, null, 2));
-    console.log('========================================');
-
     const { fullName, email, password, phone, department, age, permissions } = req.body;
 
-    // Validate required fields
     const missing = [];
-    if (!fullName || !fullName.trim()) missing.push('fullName');
-    if (!email || !email.trim()) missing.push('email');
+    if (!fullName?.trim()) missing.push('fullName');
+    if (!email?.trim()) missing.push('email');
     if (!password) missing.push('password');
-    if (!phone || !phone.trim()) missing.push('phone');
+    if (!phone?.trim()) missing.push('phone');
     if (!department) missing.push('department');
 
-    if (missing.length > 0) {
-      console.log('❌ Missing fields:', missing);
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missing.join(', ')}`,
-        missing
-      });
-    }
+    if (missing.length > 0) return res.status(400).json({ message: `Missing required fields: ${missing.join(', ')}`, missing });
 
-    // Validate password length
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
 
-    // Parse and validate age if provided
     let ageNum = null;
     if (age !== undefined && age !== null && age !== '') {
       ageNum = parseInt(age);
-      if (isNaN(ageNum)) {
-        return res.status(400).json({ message: 'Age must be a valid number' });
-      }
-      if (ageNum < 18 || ageNum > 100) {
-        return res.status(400).json({ message: 'Age must be between 18 and 100' });
-      }
+      if (isNaN(ageNum)) return res.status(400).json({ message: 'Age must be a valid number' });
+      if (ageNum < 18 || ageNum > 100) return res.status(400).json({ message: 'Age must be between 18 and 100' });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
-      console.log('❌ User already exists:', email);
-      return res.status(400).json({ message: 'Email already registered' });
-    }
+    if (existingUser) return res.status(400).json({ message: 'Email already registered' });
 
-    // Create user - DO NOT HASH PASSWORD HERE! Let the pre-save hook handle it
     const newAdmin = new User({
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
-      password: password, // Plain password - will be hashed by pre-save hook
+      password,
       phone: phone.trim(),
-      age: ageNum || 25, // Default age for admin
+      age: ageNum || 25,
       department,
       role: 'junior_admin',
       permissions: {
@@ -88,21 +63,14 @@ exports.createJuniorAdmin = async (req, res) => {
     });
 
     await newAdmin.save();
-    console.log('✅ Junior admin created successfully:', newAdmin.email);
 
-    // Send email notification (optional)
-    if (emailService && emailService.sendJuniorAdminWelcome) {
+    if (emailService?.sendJuniorAdminWelcome) {
       try {
         await emailService.sendJuniorAdminWelcome(newAdmin, password);
-        console.log('✅ Welcome email sent to:', email);
       } catch (emailError) {
         console.error('⚠️ Failed to send email:', emailError.message);
       }
     }
-
-    console.log('========================================');
-    console.log('✅ CREATE JUNIOR ADMIN COMPLETE');
-    console.log('========================================');
 
     res.status(201).json({
       message: 'Junior admin created successfully!',
@@ -122,12 +90,10 @@ exports.createJuniorAdmin = async (req, res) => {
 
   } catch (error) {
     console.error('❌ CREATE JUNIOR ADMIN ERROR:', error);
-    
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({ 
-        message: `This ${field} is already registered.` 
-      });
+      return res.status(400).json({ message: `This ${field} is already registered.` });
     }
 
     if (error.name === 'ValidationError') {
@@ -146,30 +112,16 @@ exports.updateJuniorAdmin = async (req, res) => {
     const { fullName, email, password, phone, age, department, permissions, isActive } = req.body;
 
     const admin = await User.findById(id);
-    if (!admin || admin.role !== 'junior_admin') {
-      return res.status(404).json({ message: 'Junior admin not found' });
-    }
+    if (!admin || admin.role !== 'junior_admin') return res.status(404).json({ message: 'Junior admin not found' });
 
-    // Update fields
     if (fullName) admin.fullName = fullName.trim();
     if (email) admin.email = email.toLowerCase().trim();
     if (phone) admin.phone = phone.trim();
     if (age) admin.age = parseInt(age);
     if (department) admin.department = department;
     if (typeof isActive === 'boolean') admin.isActive = isActive;
-    
-    // Update permissions
-    if (permissions) {
-      admin.permissions = {
-        ...admin.permissions,
-        ...permissions
-      };
-    }
-    
-    // Update password if provided (will be hashed by pre-save hook)
-    if (password && password.length >= 6) {
-      admin.password = password;
-    }
+    if (permissions) admin.permissions = { ...admin.permissions, ...permissions };
+    if (password?.length >= 6) admin.password = password;
 
     await admin.save();
 
@@ -190,9 +142,7 @@ exports.updateJuniorAdmin = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Update admin error:', error);
-    if (error.code === 11000) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
+    if (error.code === 11000) return res.status(400).json({ message: 'Email already exists' });
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -216,19 +166,13 @@ exports.getJuniorAdmins = async (req, res) => {
 exports.toggleAdminStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    
     const admin = await User.findById(id);
-    if (!admin || admin.role !== 'junior_admin') {
-      return res.status(404).json({ message: 'Junior admin not found' });
-    }
+    if (!admin || admin.role !== 'junior_admin') return res.status(404).json({ message: 'Junior admin not found' });
 
     admin.isActive = !admin.isActive;
     await admin.save();
 
-    res.json({ 
-      message: `Admin ${admin.isActive ? 'activated' : 'deactivated'} successfully`,
-      isActive: admin.isActive 
-    });
+    res.json({ message: `Admin ${admin.isActive ? 'activated' : 'deactivated'} successfully`, isActive: admin.isActive });
   } catch (error) {
     console.error('Error toggling status:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -240,23 +184,13 @@ exports.updateAdminPermissions = async (req, res) => {
   try {
     const { id } = req.params;
     const { permissions } = req.body;
-    
     const admin = await User.findById(id);
-    if (!admin || admin.role !== 'junior_admin') {
-      return res.status(404).json({ message: 'Junior admin not found' });
-    }
+    if (!admin || admin.role !== 'junior_admin') return res.status(404).json({ message: 'Junior admin not found' });
 
-    admin.permissions = {
-      ...admin.permissions,
-      ...permissions
-    };
-
+    admin.permissions = { ...admin.permissions, ...permissions };
     await admin.save();
 
-    res.json({ 
-      message: 'Permissions updated successfully', 
-      permissions: admin.permissions 
-    });
+    res.json({ message: 'Permissions updated successfully', permissions: admin.permissions });
   } catch (error) {
     console.error('Error updating permissions:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -267,14 +201,10 @@ exports.updateAdminPermissions = async (req, res) => {
 exports.deleteJuniorAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    
     const admin = await User.findById(id);
-    if (!admin || admin.role !== 'junior_admin') {
-      return res.status(404).json({ message: 'Junior admin not found' });
-    }
+    if (!admin || admin.role !== 'junior_admin') return res.status(404).json({ message: 'Junior admin not found' });
 
     await User.findByIdAndDelete(id);
-    
     res.json({ message: 'Junior admin deleted successfully' });
   } catch (error) {
     console.error('Error deleting admin:', error);
@@ -287,21 +217,13 @@ exports.resetAdminPassword = async (req, res) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;
-
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
-    }
+    if (!newPassword || newPassword.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
 
     const admin = await User.findById(id);
-    if (!admin || admin.role !== 'junior_admin') {
-      return res.status(404).json({ message: 'Junior admin not found' });
-    }
+    if (!admin || admin.role !== 'junior_admin') return res.status(404).json({ message: 'Junior admin not found' });
 
-    // Set new password (will be hashed by pre-save hook)
     admin.password = newPassword;
     await admin.save();
-
-    console.log('✅ Password reset for:', admin.email);
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
@@ -310,75 +232,59 @@ exports.resetAdminPassword = async (req, res) => {
   }
 };
 
-// Get dashboard stats (Super admin)
-exports.getDashboardStats = async (req, res) => {
+// Get all students safely
+exports.getAllStudents = async (req, res) => {
   try {
-    const totalRegistrations = await Registration.countDocuments();
-    const approvedRegistrations = await Registration.countDocuments({ paymentStatus: 'approved' });
-    const pendingRegistrations = await Registration.countDocuments({ paymentStatus: 'pending' });
-    const rejectedRegistrations = await Registration.countDocuments({ paymentStatus: 'rejected' });
-    
-    const appliedStudents = await Registration.countDocuments();
-    const registeredUsers = await User.countDocuments({ role: 'student' });
-    const studentsNotApplied = Math.max(0, registeredUsers - appliedStudents);
-    
-    const totalEarnings = await Registration.aggregate([
-      { $match: { paymentStatus: 'approved' } },
-      { $group: { _id: null, total: { $sum: '$amountPaid' } } }
-    ]);
+    const { status } = req.query;
 
-    const departmentStats = await Registration.aggregate([
-      { $match: { paymentStatus: 'approved' } },
-      { $group: { _id: '$department', count: { $sum: 1 }, earnings: { $sum: '$amountPaid' } } }
-    ]);
+    const students = await User.find({ role: 'student' }).select('-password').sort({ createdAt: -1 });
 
-    const shiftStats = await Registration.aggregate([
-      { $match: { paymentStatus: 'approved' } },
-      { $group: { _id: '$shift', count: { $sum: 1 } } }
-    ]);
+    // Fetch registrations but only populate existing fields
+    const registrations = await Registration.find()
+      .populate('school', 'name')
+      .populate('class', 'name') // safe if class field exists; will ignore if missing
+      .populate('student', 'fullName email phone');
 
-    const juniorAdminsCount = await User.countDocuments({ role: 'junior_admin' });
-    const activeJuniorAdmins = await User.countDocuments({ role: 'junior_admin', isActive: true });
-    const studentsCount = await User.countDocuments({ role: 'student' });
-
-    res.json({
-      totalRegistrations,
-      approvedRegistrations,
-      pendingRegistrations,
-      rejectedRegistrations,
-      totalEarnings: totalEarnings[0]?.total || 0,
-      departmentStats,
-      shiftStats,
-      juniorAdminsCount,
-      activeJuniorAdmins,
-      studentsCount,
-      appliedStudents,
-      studentsNotApplied
+    const studentsWithStatus = students.map(student => {
+      const reg = registrations.find(r => r.student?._id.toString() === student._id.toString());
+      return {
+        ...student.toObject(),
+        hasApplied: !!reg,
+        registration: reg || null,
+        applicationStatus: reg?.paymentStatus || 'not_applied',
+        class: reg?.class?.name || null,
+        school: reg?.school?.name || null
+      };
     });
+
+    let filtered = studentsWithStatus;
+    if (status === 'applied') filtered = studentsWithStatus.filter(s => s.hasApplied);
+    else if (status === 'not_applied') filtered = studentsWithStatus.filter(s => !s.hasApplied);
+    else if (status === 'approved') filtered = studentsWithStatus.filter(s => s.applicationStatus === 'approved');
+    else if (status === 'pending') filtered = studentsWithStatus.filter(s => s.applicationStatus === 'pending');
+
+    res.json(filtered);
+
   } catch (error) {
-    console.error('Error fetching stats:', error);
+    console.error('Error fetching students:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// Generate financial report
+// Generate financial report safely
 exports.generateFinancialReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    
+
     const query = { paymentStatus: 'approved' };
-    
     if (startDate && endDate) {
-      query.approvedAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
+      query.approvedAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
     }
 
     const registrations = await Registration.find(query)
       .populate('student', 'fullName email phone')
       .populate('school', 'name')
-      .populate('class', 'name')
+      .populate('class', 'name') // safe if field exists
       .populate('approvedBy', 'fullName')
       .sort({ approvedAt: -1 });
 
@@ -386,13 +292,10 @@ exports.generateFinancialReport = async (req, res) => {
 
     const report = {
       generatedAt: new Date(),
-      period: {
-        start: startDate || 'All time',
-        end: endDate || 'Present'
-      },
+      period: { start: startDate || 'All time', end: endDate || 'Present' },
       summary: {
         totalTransactions: registrations.length,
-        totalAmount: totalAmount,
+        totalAmount,
         averagePerTransaction: registrations.length > 0 ? totalAmount / registrations.length : 0
       },
       transactions: registrations.map(reg => ({
@@ -402,58 +305,18 @@ exports.generateFinancialReport = async (req, res) => {
         phone: reg.student?.phone,
         department: reg.department,
         shift: reg.shift,
-        school: reg.school?.name,
-        class: reg.class?.name,
+        school: reg.school?.name || null,
+        class: reg.class?.name || null,
         amount: reg.amountPaid || 30000,
-        approvedBy: reg.approvedBy?.fullName,
+        approvedBy: reg.approvedBy?.fullName || null,
         receiptPhoto: reg.receiptPhoto
       }))
     };
 
     res.json(report);
+
   } catch (error) {
     console.error('Error generating report:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// Get all students
-exports.getAllStudents = async (req, res) => {
-  try {
-    const { status } = req.query;
-    
-    const students = await User.find({ role: 'student' })
-      .select('-password')
-      .sort({ createdAt: -1 });
-
-    const registrations = await Registration.find()
-      .populate('school', 'name')
-      .populate('class', 'name');
-
-    const studentsWithStatus = students.map(student => {
-      const reg = registrations.find(r => r.student?.toString() === student._id.toString());
-      return {
-        ...student.toObject(),
-        hasApplied: !!reg,
-        registration: reg || null,
-        applicationStatus: reg ? reg.paymentStatus : 'not_applied'
-      };
-    });
-
-    let filtered = studentsWithStatus;
-    if (status === 'applied') {
-      filtered = studentsWithStatus.filter(s => s.hasApplied);
-    } else if (status === 'not_applied') {
-      filtered = studentsWithStatus.filter(s => !s.hasApplied);
-    } else if (status === 'approved') {
-      filtered = studentsWithStatus.filter(s => s.applicationStatus === 'approved');
-    } else if (status === 'pending') {
-      filtered = studentsWithStatus.filter(s => s.applicationStatus === 'pending');
-    }
-
-    res.json(filtered);
-  } catch (error) {
-    console.error('Error fetching students:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
