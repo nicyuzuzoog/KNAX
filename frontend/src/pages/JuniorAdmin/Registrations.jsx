@@ -36,9 +36,23 @@ const AdminRegistrations = () => {
     try {
       const params = filter ? `?status=${filter}` : '';
       const response = await api.get(`/registrations${params}`);
-      setRegistrations(response.data);
+
+      // ✅ FIX: Handle various API response shapes safely
+      const data = response.data;
+      if (Array.isArray(data)) {
+        setRegistrations(data);
+      } else if (Array.isArray(data?.registrations)) {
+        setRegistrations(data.registrations);
+      } else if (Array.isArray(data?.data)) {
+        setRegistrations(data.data);
+      } else {
+        console.warn('Unexpected registrations response shape:', data);
+        setRegistrations([]);
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching registrations:', error);
+      toast.error('Failed to load registrations');
+      setRegistrations([]); // ✅ FIX: Always fall back to array on error
     } finally {
       setLoading(false);
     }
@@ -79,13 +93,16 @@ const AdminRegistrations = () => {
     }
   };
 
-  const filteredRegistrations = registrations.filter(reg => {
-    const searchLower = search.toLowerCase();
-    return (
-      reg.student?.fullName?.toLowerCase().includes(searchLower) ||
-      reg.student?.email?.toLowerCase().includes(searchLower)
-    );
-  });
+  // ✅ FIX: Guard .filter() with Array.isArray check
+  const filteredRegistrations = Array.isArray(registrations)
+    ? registrations.filter(reg => {
+        const searchLower = search.toLowerCase();
+        return (
+          reg.student?.fullName?.toLowerCase().includes(searchLower) ||
+          reg.student?.email?.toLowerCase().includes(searchLower)
+        );
+      })
+    : [];
 
   if (loading) {
     return (
