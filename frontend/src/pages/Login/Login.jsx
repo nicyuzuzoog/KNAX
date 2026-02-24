@@ -1,93 +1,113 @@
 // src/pages/Login/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import Navbar from '../../components/Navbar/Navbar';
 import Loader from '../../components/Loader/Loader';
 import {
-  FaEnvelope,
-  FaLock,
-  FaSignInAlt,
-  FaGraduationCap,
-  FaEye,
-  FaEyeSlash,
-  FaLaptopCode,
-  FaNetworkWired,
-  FaChartLine,
-  FaMicrochip,
-  FaWifi,
-  FaCheckCircle,
-  FaExclamationCircle
+  FaEnvelope, FaLock, FaSignInAlt, FaGraduationCap,
+  FaEye, FaEyeSlash, FaLaptopCode, FaNetworkWired,
+  FaChartLine, FaMicrochip, FaWifi, FaCheckCircle,
+  FaExclamationCircle, FaShieldAlt, FaBolt
 } from 'react-icons/fa';
-import './Auth.css';
+import './Login.css';
 
+/* ── tiny particle helper ── */
+const PARTICLE_COUNT = 18;
+function Particles() {
+  return (
+    <div className="particle-field" aria-hidden="true">
+      {Array.from({ length: PARTICLE_COUNT }).map((_, i) => (
+        <span
+          key={i}
+          className="ptcl"
+          style={{
+            left: `${Math.random() * 100}%`,
+            animationDelay: `${(Math.random() * 12).toFixed(2)}s`,
+            animationDuration: `${(10 + Math.random() * 14).toFixed(2)}s`,
+            width: `${Math.random() > 0.6 ? 4 : 2}px`,
+            height: `${Math.random() > 0.6 ? 4 : 2}px`,
+            opacity: (0.3 + Math.random() * 0.5).toFixed(2),
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── typewriter for left panel headline ── */
+const WORDS = ['Innovate.', 'Build.', 'Grow.', 'Excel.'];
+function Typewriter() {
+  const [wi, setWi] = useState(0);
+  const [text, setText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const timeout = useRef(null);
+
+  useEffect(() => {
+    const word = WORDS[wi % WORDS.length];
+    const speed = deleting ? 60 : 100;
+    const pause = deleting ? 0 : 1600;
+
+    if (!deleting && text === word) {
+      timeout.current = setTimeout(() => setDeleting(true), pause);
+    } else if (deleting && text === '') {
+      setDeleting(false);
+      setWi(p => p + 1);
+    } else {
+      timeout.current = setTimeout(() => {
+        setText(deleting ? word.slice(0, text.length - 1) : word.slice(0, text.length + 1));
+      }, speed);
+    }
+    return () => clearTimeout(timeout.current);
+  }, [text, deleting, wi]);
+
+  return (
+    <span className="typewriter-text">
+      {text}<span className="tw-cursor">|</span>
+    </span>
+  );
+}
+
+/* ── main component ── */
 const Login = () => {
-  const [formData, setFormData] = useState({ 
-    email: '', 
-    password: '' 
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [rememberMe, setRememberMe] = useState(false);
+  const [focused, setFocused] = useState({});
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Handle input changes
+  useEffect(() => {
+    const saved = localStorage.getItem('rememberMe');
+    const savedEmail = localStorage.getItem('userEmail');
+    if (saved && savedEmail) { setFormData(p => ({ ...p, email: savedEmail })); setRememberMe(true); }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    setFormData(p => ({ ...p, [name]: value }));
+    if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
   };
 
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Email validation
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validate = () => {
+    const e = {};
+    if (!formData.email.trim()) e.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Enter a valid email';
+    if (!formData.password) e.password = 'Password is required';
+    else if (formData.password.length < 6) e.password = 'At least 6 characters';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate form
-    if (!validateForm()) {
-      toast.error('Please fix the errors in the form');
-      return;
-    }
-
+    if (!validate()) { toast.error('Please fix the errors below'); return; }
     setLoading(true);
-    
     try {
-      const data = await login({
-        email: formData.email.trim().toLowerCase(),
-        password: formData.password
-      });
-      
-      console.log('Login response:', data);
-      
-      // Store remember me preference
+      const data = await login({ email: formData.email.trim().toLowerCase(), password: formData.password });
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true');
         localStorage.setItem('userEmail', formData.email);
@@ -95,275 +115,229 @@ const Login = () => {
         localStorage.removeItem('rememberMe');
         localStorage.removeItem('userEmail');
       }
-      
-      toast.success(`Welcome back, ${data.user.fullName}!`, {
-        icon: '👋',
-        duration: 3000
-      });
-
-      // Redirect based on role
+      toast.success(`Welcome back, ${data.user.fullName}! 👋`);
       setTimeout(() => {
-        switch (data.user.role) {
-          case 'super_admin':
-            navigate('/super-admin/dashboard', { replace: true });
-            break;
-          case 'junior_admin':
-            navigate('/admin/dashboard', { replace: true });
-            break;
-          case 'student':
-            navigate('/student/dashboard', { replace: true });
-            break;
-          default:
-            navigate('/', { replace: true });
-        }
+        const routes = { super_admin: '/super-admin/dashboard', junior_admin: '/admin/dashboard', student: '/student/dashboard' };
+        navigate(routes[data.user.role] || '/', { replace: true });
       }, 500);
-      
     } catch (error) {
-      console.error('Login error:', error);
-      
-      let errorMessage = 'Login failed. Please check your credentials.';
-      
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Invalid email or password';
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Account not found. Please register first.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage, {
-        icon: '❌',
-        duration: 4000
-      });
+      const msg = error.response?.data?.message
+        || (error.response?.status === 401 ? 'Invalid email or password'
+          : error.response?.status === 404 ? 'Account not found. Register first.'
+          : 'Login failed. Please try again.');
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load remember me data on mount
-  React.useEffect(() => {
-    const remembered = localStorage.getItem('rememberMe');
-    const savedEmail = localStorage.getItem('userEmail');
-    
-    if (remembered && savedEmail) {
-      setFormData(prev => ({ ...prev, email: savedEmail }));
-      setRememberMe(true);
-    }
-  }, []);
+  if (loading) return <Loader />;
 
-  if (loading) {
-    return <Loader />;
-  }
+  const fieldState = (name) => errors[name] ? 'error' : (formData[name] && !errors[name] ? 'success' : '');
 
   return (
     <>
       <Navbar />
-      <div className="auth-page-split">
-        {/* Left Side - Animated Design */}
-        <div className="auth-left">
-          <div className="auth-left-content">
-            {/* Brand Section */}
-            <div className="auth-brand">
-              <FaGraduationCap className="brand-icon" />
-              <h1>KNAX<span>250</span></h1>
-              <p>Technical Training Center</p>
-            </div>
+      <div className="login-split">
 
-            {/* Features Section */}
-            <div className="auth-features">
-              <h2>Transform Your Future</h2>
-              <p>Join Rwanda's leading technical training center</p>
-              
-              <div className="feature-list">
-                <div className="feature-item">
-                  <div className="feature-icon">
-                    <FaLaptopCode />
-                  </div>
-                  <div className="feature-text">
-                    <h4>Software Development</h4>
-                    <p>Web & Mobile Apps</p>
-                  </div>
-                </div>
-                
-                <div className="feature-item">
-                  <div className="feature-icon">
-                    <FaNetworkWired />
-                  </div>
-                  <div className="feature-text">
-                    <h4>Networking & IT</h4>
-                    <p>Infrastructure & Security</p>
-                  </div>
-                </div>
-                
-                <div className="feature-item">
-                  <div className="feature-icon">
-                    <FaChartLine />
-                  </div>
-                  <div className="feature-text">
-                    <h4>Accounting</h4>
-                    <p>Financial Management</p>
-                  </div>
-                </div>
-                
-                <div className="feature-item">
-                  <div className="feature-icon">
-                    <FaMicrochip />
-                  </div>
-                  <div className="feature-text">
-                    <h4>Electronics</h4>
-                    <p>Repair & Maintenance</p>
-                  </div>
-                </div>
+        {/* ══════════════ LEFT ══════════════ */}
+        <aside className="login-left" aria-hidden="true">
+          <Particles />
+
+          {/* grid overlay */}
+          <div className="ll-grid" />
+          {/* radial glow */}
+          <div className="ll-glow" />
+
+          <div className="ll-content">
+            {/* brand */}
+            <div className="ll-brand">
+              <div className="ll-logo-box">
+                <FaGraduationCap />
               </div>
+              <h1>KNAX<span>_250</span></h1>
+              <p className="ll-sub">Technical Training Center</p>
             </div>
 
-            {/* Floating Elements */}
-            <div className="floating-elements">
-              <div className="floating-circle circle-1"></div>
-              <div className="floating-circle circle-2"></div>
-              <div className="floating-circle circle-3"></div>
-              <div className="floating-icon icon-1"><FaWifi /></div>
-              <div className="floating-icon icon-2"><FaLaptopCode /></div>
-              <div className="floating-icon icon-3"><FaNetworkWired /></div>
+            {/* headline */}
+            <div className="ll-headline">
+              <p className="ll-eyebrow"><FaBolt /> Rwanda's #1 Tech School</p>
+              <h2>Learn. <Typewriter /></h2>
+              <p className="ll-desc">
+                Transform your career with hands-on technical training,
+                RTB certification, and guaranteed job placement support.
+              </p>
+            </div>
+
+            {/* feature cards */}
+            <div className="ll-features">
+              {[
+                { icon: <FaLaptopCode />, title: 'Software Dev', sub: 'Web & Mobile Apps', color: '#42A5F5' },
+                { icon: <FaNetworkWired />, title: 'Networking & IT', sub: 'Infrastructure & Security', color: '#10B981' },
+                { icon: <FaChartLine />, title: 'Accounting', sub: 'Financial Management', color: '#F59E0B' },
+                { icon: <FaMicrochip />, title: 'Electronics', sub: 'Repair & Maintenance', color: '#A78BFA' },
+              ].map((f, i) => (
+                <div className="ll-card" key={i} style={{ '--accent': f.color, animationDelay: `${i * 0.1 + 0.3}s` }}>
+                  <div className="ll-card-icon">{f.icon}</div>
+                  <div>
+                    <h4>{f.title}</h4>
+                    <p>{f.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* stats */}
+            <div className="ll-stats">
+              {[['500+', 'Students'], ['100%', 'Job Support'], ['3 mo', 'Duration'], ['RTB', 'Certified']].map(([v, l]) => (
+                <div className="ll-stat" key={l}>
+                  <strong>{v}</strong><span>{l}</span>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Right Side - Login Form */}
-        <div className="auth-right">
-          <div className="auth-form-container">
-            {/* Mobile Brand Header (hidden on desktop) */}
-            <div className="mobile-brand-header">
-              <FaGraduationCap className="brand-icon" />
-              <h1>KNAX<span>250</span></h1>
+          {/* decorative blobs */}
+          <div className="blob blob-1" />
+          <div className="blob blob-2" />
+          <div className="blob blob-3" />
+        </aside>
+
+        {/* ══════════════ RIGHT ══════════════ */}
+        <main className="login-right">
+          <div className="lr-dot-bg" />
+          <div className="lr-corner-glow" />
+
+          <div className="login-card">
+            {/* top accent */}
+            <div className="lc-accent" />
+
+            {/* mobile brand */}
+            <div className="lc-mobile-brand">
+              <div className="lc-mb-icon"><FaGraduationCap /></div>
+              <h1>KNAX<span>_250</span></h1>
             </div>
 
-            {/* Form Header */}
-            <div className="auth-form-header">
+            {/* header */}
+            <div className="lc-header">
+              <div className="lc-header-badge">
+                <FaShieldAlt /> Secure Login
+              </div>
               <h2>Welcome Back</h2>
-              <p>Login to your account to continue</p>
+              <p>Sign in to your KNAX_250 account</p>
             </div>
-            
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="auth-form" noValidate>
-              {/* Email Field */}
-              <div className={`form-group ${errors.email ? 'error' : formData.email && !errors.email ? 'success' : ''}`}>
+
+            {/* form */}
+            <form onSubmit={handleSubmit} className="lc-form" noValidate>
+
+              {/* email */}
+              <div className={`lc-field ${fieldState('email')}`}>
                 <label htmlFor="email">
                   <FaEnvelope /> Email Address
                 </label>
-                <input 
-                  type="email" 
-                  id="email"
-                  name="email" 
-                  value={formData.email} 
-                  onChange={handleChange} 
-                  placeholder="Enter your email address"
-                  autoComplete="email"
-                  aria-invalid={errors.email ? 'true' : 'false'}
-                  aria-describedby={errors.email ? 'email-error' : undefined}
-                />
-                {errors.email && (
-                  <span className="error-text" id="email-error">
-                    <FaExclamationCircle /> {errors.email}
-                  </span>
-                )}
-                {formData.email && !errors.email && (
-                  <span className="success-text">
-                    <FaCheckCircle /> Valid email
-                  </span>
-                )}
+                <div className={`lc-input-wrap ${focused.email ? 'focused' : ''}`}>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    onFocus={() => setFocused(p => ({ ...p, email: true }))}
+                    onBlur={() => setFocused(p => ({ ...p, email: false }))}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    aria-invalid={!!errors.email}
+                  />
+                  {fieldState('email') === 'success' && <span className="field-icon success"><FaCheckCircle /></span>}
+                  {fieldState('email') === 'error'   && <span className="field-icon error"><FaExclamationCircle /></span>}
+                </div>
+                {errors.email && <p className="field-msg error"><FaExclamationCircle />{errors.email}</p>}
+                {!errors.email && formData.email && <p className="field-msg success"><FaCheckCircle />Valid email</p>}
               </div>
 
-              {/* Password Field */}
-              <div className={`form-group ${errors.password ? 'error' : ''}`}>
+              {/* password */}
+              <div className={`lc-field ${fieldState('password')}`}>
                 <label htmlFor="password">
                   <FaLock /> Password
                 </label>
-                <div className="password-input-wrapper">
-                  <input 
-                    type={showPassword ? 'text' : 'password'} 
+                <div className={`lc-input-wrap ${focused.password ? 'focused' : ''}`}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
                     id="password"
-                    name="password" 
-                    value={formData.password} 
+                    name="password"
+                    value={formData.password}
                     onChange={handleChange}
+                    onFocus={() => setFocused(p => ({ ...p, password: true }))}
+                    onBlur={() => setFocused(p => ({ ...p, password: false }))}
                     placeholder="Enter your password"
                     autoComplete="current-password"
-                    aria-invalid={errors.password ? 'true' : 'false'}
-                    aria-describedby={errors.password ? 'password-error' : undefined}
+                    aria-invalid={!!errors.password}
+                    style={{ paddingRight: '52px' }}
                   />
-                  <button 
-                    type="button" 
-                    className="password-toggle" 
-                    onClick={() => setShowPassword(!showPassword)}
+                  <button
+                    type="button"
+                    className="pw-toggle"
+                    onClick={() => setShowPassword(s => !s)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    tabIndex={0}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {errors.password && (
-                  <span className="error-text" id="password-error">
-                    <FaExclamationCircle /> {errors.password}
-                  </span>
-                )}
+                {errors.password && <p className="field-msg error"><FaExclamationCircle />{errors.password}</p>}
               </div>
 
-              {/* Form Options */}
-              <div className="form-options">
-                <label className="remember-me">
-                  <input 
-                    type="checkbox" 
+              {/* options */}
+              <div className="lc-options">
+                <label className="lc-remember">
+                  <input
+                    type="checkbox"
                     checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    aria-label="Remember me"
+                    onChange={e => setRememberMe(e.target.checked)}
                   />
+                  <span className="lc-checkbox-box" />
                   <span>Remember me</span>
                 </label>
-                <Link to="/forgot-password" className="forgot-link">
-                  Forgot password?
-                </Link>
+                <Link to="/forgot-password" className="lc-forgot">Forgot password?</Link>
               </div>
 
-              {/* Submit Button */}
-              <button 
-                type="submit" 
-                className={`btn btn-primary btn-full ${loading ? 'btn-loading' : ''}`} 
+              {/* submit */}
+              <button
+                type="submit"
+                className={`lc-btn${loading ? ' loading' : ''}`}
                 disabled={loading}
-                aria-busy={loading}
               >
                 {loading ? (
-                  <span>Logging in...</span>
+                  <span className="lc-btn-inner"><span className="lc-spinner" />Signing in…</span>
                 ) : (
-                  <>
-                    <FaSignInAlt /> Login to Dashboard
-                  </>
+                  <span className="lc-btn-inner"><FaSignInAlt />Login to Dashboard</span>
                 )}
+                <span className="lc-btn-shine" />
               </button>
             </form>
 
-            {/* Divider */}
-            <div className="auth-divider">
-              <span></span>
-              <p>or</p>
-              <span></span>
+            {/* divider */}
+            <div className="lc-divider"><span /><p>or</p><span /></div>
+
+            {/* perks */}
+            <div className="lc-perks">
+              {[
+                { icon: <FaWifi />, text: 'Free WiFi included' },
+                { icon: <FaCheckCircle />, text: 'RTB Certified programs' },
+              ].map((p, i) => (
+                <div className="lc-perk" key={i}>
+                  <span className="lc-perk-icon">{p.icon}</span>
+                  <span>{p.text}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Footer */}
-            <div className="auth-footer">
-              <p>
-                Don't have an account? {' '}
-                <Link to="/register" className="auth-link">
-                  Register here
-                </Link>
-              </p>
-              <p style={{ marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-light)' }}>
-                Need help? <Link to="/contact" className="auth-link">Contact Support</Link>
-              </p>
+            {/* footer */}
+            <div className="lc-footer">
+              <p>Don't have an account? <Link to="/register" className="lc-link">Register here</Link></p>
+              <p>Need help? <Link to="/contact" className="lc-link">Contact Support</Link></p>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </>
   );
