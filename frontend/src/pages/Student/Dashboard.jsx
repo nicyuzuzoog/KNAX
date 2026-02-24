@@ -1,3 +1,243 @@
+// // pages/Student/StudentDashboard.jsx
+// import React, { useState, useEffect } from 'react';
+// import { Link, useLocation, useNavigate } from 'react-router-dom';
+// import { useAuth } from '../../context/AuthContext';
+// import api from '../../services/api';
+// import Loader from '../../components/Loader/Loader';
+// import { 
+//   FaHome,
+//   FaClipboardList, 
+//   FaCalendarCheck, 
+//   FaClock, 
+//   FaCheckCircle,
+//   FaTimesCircle,
+//   FaHourglassHalf,
+//   FaUserGraduate,
+//   FaBuilding,
+//   FaBook,
+//   FaUser,
+//   FaCog,
+//   FaSignOutAlt,
+//   FaBars,
+//   FaTimes,
+//   FaEdit,
+//   FaLock,
+//   FaEnvelope,
+//   FaPhone,
+//   FaTasks,
+//   FaBell,
+//   FaGraduationCap
+// } from 'react-icons/fa';
+// import './Dashboard.css';
+
+// // Department images
+// const departmentImages = {
+//   SOD: '/uploads/departments/sod.jpg',
+//   CSA: '/uploads/departments/csa.jpg',
+//   ACCOUNTING: '/uploads/departments/accounting.jpg',
+//   NIT: '/uploads/departments/nit.jpg',
+//   ETE: '/uploads/departments/ete.jpg'
+// };
+
+// const fallbackImages = {
+//   SOD: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600',
+//   CSA: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600',
+//   ACCOUNTING: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600',
+//   NIT: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600',
+//   ETE: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=600'
+// };
+
+// const StudentDashboard = () => {
+//   const { user, logout } = useAuth();
+//   const location = useLocation();
+//   const navigate = useNavigate();
+//   const [sidebarOpen, setSidebarOpen] = useState(true);
+//   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+//   const [registration, setRegistration] = useState(null);
+//   const [attendance, setAttendance] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [activeSection, setActiveSection] = useState('overview');
+
+//   useEffect(() => {
+//     fetchData();
+//   }, []);
+
+//   useEffect(() => {
+//     setMobileMenuOpen(false);
+//   }, [location]);
+
+//   const fetchData = async () => {
+//     try {
+//       const [regRes, attRes] = await Promise.all([
+//         api.get('/registrations/my-registration'),
+//         api.get('/attendance/my-attendance')
+//       ]);
+//       setRegistration(regRes.data);
+//       setAttendance(attRes.data);
+//     } catch (error) {
+//       console.error('Error fetching data:', error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleLogout = () => {
+//     logout();
+//     navigate('/login');
+//   };
+
+//   // Clean menu items - Only essential items
+//   const menuItems = [
+//     { id: 'overview', label: 'Overview', icon: FaHome },
+//     { id: 'profile', label: 'My Profile', icon: FaUser },
+//     { id: 'registration', label: 'Registration', icon: FaClipboardList },
+//     { id: 'attendance', label: 'Attendance', icon: FaCalendarCheck },
+//     { id: 'homeworks', label: 'Homeworks', icon: FaTasks },
+//     { id: 'timetable', label: 'Timetable', icon: FaClock },
+//     { divider: true },
+//     { id: 'settings', label: 'Settings', icon: FaCog },
+//   ];
+
+//   if (loading) {
+//     return <Loader />;
+//   }
+
+//   return (
+//     <div className={`student-dashboard-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
+//       {/* Sidebar */}
+//       <aside className={`dashboard-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+//         <div className="sidebar-header">
+//           <div className="sidebar-logo">
+//             <FaGraduationCap />
+//             <span>KNAX Student</span>
+//           </div>
+//           <button 
+//             className="sidebar-toggle desktop-toggle"
+//             onClick={() => setSidebarOpen(!sidebarOpen)}
+//           >
+//             <FaBars />
+//           </button>
+//           <button 
+//             className="sidebar-toggle mobile-toggle"
+//             onClick={() => setMobileMenuOpen(false)}
+//           >
+//             <FaTimes />
+//           </button>
+//         </div>
+
+//         {/* User Profile Summary */}
+//         <div className="sidebar-profile">
+//           <div className="profile-avatar">
+//             {user?.fullName?.charAt(0).toUpperCase()}
+//           </div>
+//           <div className="profile-info">
+//             <h4>{user?.fullName}</h4>
+//             <span>{registration?.department || 'Student'}</span>
+//           </div>
+//         </div>
+
+//         {/* Navigation Menu */}
+//         <nav className="sidebar-nav">
+//           {menuItems.map((item, index) => (
+//             item.divider ? (
+//               <div key={index} className="nav-divider"></div>
+//             ) : (
+//               <button
+//                 key={item.id}
+//                 className={`nav-item ${activeSection === item.id ? 'active' : ''}`}
+//                 onClick={() => setActiveSection(item.id)}
+//               >
+//                 <item.icon className="nav-icon" />
+//                 <span className="nav-label">{item.label}</span>
+//               </button>
+//             )
+//           ))}
+//         </nav>
+
+//         {/* Logout Button */}
+//         <div className="sidebar-footer">
+//           <button className="nav-item logout-btn" onClick={handleLogout}>
+//             <FaSignOutAlt className="nav-icon" />
+//             <span className="nav-label">Logout</span>
+//           </button>
+//         </div>
+//       </aside>
+
+//       {/* Mobile Overlay */}
+//       {mobileMenuOpen && (
+//         <div 
+//           className="sidebar-overlay"
+//           onClick={() => setMobileMenuOpen(false)}
+//         ></div>
+//       )}
+
+//       {/* Main Content */}
+//       <main className="dashboard-main">
+//         {/* Top Header */}
+//         <header className="dashboard-header">
+//           <button 
+//             className="mobile-menu-btn"
+//             onClick={() => setMobileMenuOpen(true)}
+//           >
+//             <FaBars />
+//           </button>
+//           <div className="header-title">
+//             <h1>{menuItems.find(item => item.id === activeSection)?.label || 'Dashboard'}</h1>
+//           </div>
+//           <div className="header-actions">
+//             <button className="header-btn notification-btn">
+//               <FaBell />
+//               <span className="notification-badge">3</span>
+//             </button>
+//             <div className="header-user">
+//               <span>{user?.fullName}</span>
+//               <div className="user-avatar-small">
+//                 {user?.fullName?.charAt(0).toUpperCase()}
+//               </div>
+//             </div>
+//           </div>
+//         </header>
+
+//         {/* Content Area */}
+//         <div className="dashboard-content">
+//           {activeSection === 'overview' && (
+//             <OverviewSection 
+//               user={user} 
+//               registration={registration} 
+//               attendance={attendance}
+//               fallbackImages={fallbackImages}
+//               departmentImages={departmentImages}
+//             />
+//           )}
+//           {activeSection === 'profile' && (
+//             <ProfileSection user={user} />
+//           )}
+//           {activeSection === 'registration' && (
+//             <RegistrationSection 
+//               registration={registration}
+//               fallbackImages={fallbackImages}
+//               departmentImages={departmentImages}
+//             />
+//           )}
+//           {activeSection === 'attendance' && (
+//             <AttendanceSection attendance={attendance} />
+//           )}
+//           {activeSection === 'homeworks' && (
+//             <HomeworksSection registration={registration} />
+//           )}
+//           {activeSection === 'timetable' && (
+//             <TimetableSection registration={registration} />
+//           )}
+//           {activeSection === 'settings' && (
+//             <SettingsSection user={user} />
+//           )}
+//         </div>
+//       </main>
+//     </div>
+//   );
+// };
+
+
 // pages/Student/StudentDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -72,10 +312,14 @@ const StudentDashboard = () => {
         api.get('/registrations/my-registration'),
         api.get('/attendance/my-attendance')
       ]);
-      setRegistration(regRes.data);
-      setAttendance(attRes.data);
+
+      // Ensure safe defaults
+      setRegistration(regRes.data.registration || null);
+      setAttendance(Array.isArray(attRes.data.attendance) ? attRes.data.attendance : []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setRegistration(null);
+      setAttendance([]);
     } finally {
       setLoading(false);
     }
@@ -86,7 +330,6 @@ const StudentDashboard = () => {
     navigate('/login');
   };
 
-  // Clean menu items - Only essential items
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: FaHome },
     { id: 'profile', label: 'My Profile', icon: FaUser },
@@ -98,9 +341,7 @@ const StudentDashboard = () => {
     { id: 'settings', label: 'Settings', icon: FaCog },
   ];
 
-  if (loading) {
-    return <Loader />;
-  }
+  if (loading) return <Loader />;
 
   return (
     <div className={`student-dashboard-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
@@ -111,16 +352,10 @@ const StudentDashboard = () => {
             <FaGraduationCap />
             <span>KNAX Student</span>
           </div>
-          <button 
-            className="sidebar-toggle desktop-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
+          <button className="sidebar-toggle desktop-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
             <FaBars />
           </button>
-          <button 
-            className="sidebar-toggle mobile-toggle"
-            onClick={() => setMobileMenuOpen(false)}
-          >
+          <button className="sidebar-toggle mobile-toggle" onClick={() => setMobileMenuOpen(false)}>
             <FaTimes />
           </button>
         </div>
@@ -164,21 +399,13 @@ const StudentDashboard = () => {
       </aside>
 
       {/* Mobile Overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="sidebar-overlay"
-          onClick={() => setMobileMenuOpen(false)}
-        ></div>
-      )}
+      {mobileMenuOpen && <div className="sidebar-overlay" onClick={() => setMobileMenuOpen(false)}></div>}
 
       {/* Main Content */}
       <main className="dashboard-main">
         {/* Top Header */}
         <header className="dashboard-header">
-          <button 
-            className="mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(true)}
-          >
+          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(true)}>
             <FaBars />
           </button>
           <div className="header-title">
@@ -191,46 +418,20 @@ const StudentDashboard = () => {
             </button>
             <div className="header-user">
               <span>{user?.fullName}</span>
-              <div className="user-avatar-small">
-                {user?.fullName?.charAt(0).toUpperCase()}
-              </div>
+              <div className="user-avatar-small">{user?.fullName?.charAt(0).toUpperCase()}</div>
             </div>
           </div>
         </header>
 
         {/* Content Area */}
         <div className="dashboard-content">
-          {activeSection === 'overview' && (
-            <OverviewSection 
-              user={user} 
-              registration={registration} 
-              attendance={attendance}
-              fallbackImages={fallbackImages}
-              departmentImages={departmentImages}
-            />
-          )}
-          {activeSection === 'profile' && (
-            <ProfileSection user={user} />
-          )}
-          {activeSection === 'registration' && (
-            <RegistrationSection 
-              registration={registration}
-              fallbackImages={fallbackImages}
-              departmentImages={departmentImages}
-            />
-          )}
-          {activeSection === 'attendance' && (
-            <AttendanceSection attendance={attendance} />
-          )}
-          {activeSection === 'homeworks' && (
-            <HomeworksSection registration={registration} />
-          )}
-          {activeSection === 'timetable' && (
-            <TimetableSection registration={registration} />
-          )}
-          {activeSection === 'settings' && (
-            <SettingsSection user={user} />
-          )}
+          {activeSection === 'overview' && <OverviewSection user={user} registration={registration} attendance={attendance} fallbackImages={fallbackImages} departmentImages={departmentImages} />}
+          {activeSection === 'profile' && <ProfileSection user={user} />}
+          {activeSection === 'registration' && <RegistrationSection registration={registration} fallbackImages={fallbackImages} departmentImages={departmentImages} />}
+          {activeSection === 'attendance' && <AttendanceSection attendance={attendance} />}
+          {activeSection === 'homeworks' && <HomeworksSection registration={registration} />}
+          {activeSection === 'timetable' && <TimetableSection registration={registration} />}
+          {activeSection === 'settings' && <SettingsSection user={user} />}
         </div>
       </main>
     </div>
