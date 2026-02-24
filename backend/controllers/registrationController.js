@@ -22,7 +22,6 @@ exports.getRegistrations = async (req, res) => {
     const registrations = await Registration.find(query)
       .populate('student', 'fullName email phone age')
       .populate('school', 'name')
-      .populate('class', 'name')
       .populate('approvedBy', 'fullName')
       .populate('rejectedBy', 'fullName')
       .sort({ createdAt: -1 });
@@ -44,7 +43,6 @@ exports.getRegistration = async (req, res) => {
     const registration = await Registration.findById(req.params.id)
       .populate('student', 'fullName email phone age')
       .populate('school', 'name')
-      .populate('class', 'name')
       .populate('approvedBy', 'fullName')
       .populate('rejectedBy', 'fullName');
 
@@ -64,7 +62,6 @@ exports.getMyRegistration = async (req, res) => {
   try {
     const registration = await Registration.findOne({ student: req.user._id })
       .populate('school', 'name')
-      .populate('class', 'name')
       .populate('approvedBy', 'fullName');
 
     res.json(registration);
@@ -77,7 +74,7 @@ exports.getMyRegistration = async (req, res) => {
 // Create registration
 exports.createRegistration = async (req, res) => {
   try {
-    const { school, class: classId, department, shift, startDate, endDate, amountPaid } = req.body;
+    const { school, department, shift, startDate, endDate, amountPaid } = req.body;
 
     // Check for existing registration
     const existing = await Registration.findOne({
@@ -92,7 +89,6 @@ exports.createRegistration = async (req, res) => {
     const registration = new Registration({
       student: req.user._id,
       school,
-      class: classId,
       department,
       shift,
       startDate,
@@ -106,7 +102,7 @@ exports.createRegistration = async (req, res) => {
     }
 
     await registration.save();
-    await registration.populate(['student', 'school', 'class']);
+    await registration.populate(['student', 'school']);
 
     res.status(201).json({
       message: 'Registration submitted successfully',
@@ -132,7 +128,7 @@ exports.updateRegistration = async (req, res) => {
     }
 
     const updates = req.body;
-    
+
     if (req.file) {
       updates.receiptPhoto = `/uploads/receipts/${req.file.filename}`;
     }
@@ -142,7 +138,7 @@ exports.updateRegistration = async (req, res) => {
     });
 
     await registration.save();
-    await registration.populate(['student', 'school', 'class']);
+    await registration.populate(['student', 'school']);
 
     res.json({ message: 'Registration updated', registration });
   } catch (error) {
@@ -167,19 +163,9 @@ exports.deleteRegistration = async (req, res) => {
   }
 };
 
-// ============================================
-// UPDATE PAYMENT STATUS (Generic handler)
-// This handles: /registrations/:id/status
-// ============================================
+// Update payment status (generic)
 exports.updatePaymentStatus = async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('📝 UPDATE PAYMENT STATUS');
-    console.log('ID:', req.params.id);
-    console.log('Body:', req.body);
-    console.log('User:', req.user?.email, req.user?.role);
-    console.log('========================================\n');
-
     const { status, paymentStatus, reason } = req.body;
     const newStatus = status || paymentStatus;
 
@@ -198,7 +184,6 @@ exports.updatePaymentStatus = async (req, res) => {
       return res.status(404).json({ message: 'Registration not found' });
     }
 
-    // Check permissions
     const isSuperAdmin = req.user.role === 'super_admin';
     const canApprove = req.user.permissions?.canApprovePayments === true;
     const canReject = req.user.permissions?.canRejectPayments === true;
@@ -207,19 +192,16 @@ exports.updatePaymentStatus = async (req, res) => {
       return res.status(403).json({ message: 'You do not have permission to update payment status' });
     }
 
-    // Check department for junior admin
     if (req.user.role === 'junior_admin' && req.user.department) {
       if (registration.department !== req.user.department) {
         return res.status(403).json({ message: 'You can only manage registrations for your department' });
       }
     }
 
-    // Rejection requires reason
     if (newStatus === 'rejected' && !reason) {
       return res.status(400).json({ message: 'Rejection reason is required' });
     }
 
-    // Update the registration
     registration.paymentStatus = newStatus;
 
     if (newStatus === 'approved') {
@@ -237,40 +219,25 @@ exports.updatePaymentStatus = async (req, res) => {
     await registration.save();
     await registration.populate(['student', 'school', 'approvedBy', 'rejectedBy']);
 
-    console.log(`✅ Status updated to: ${newStatus}`);
-
     res.json({
       success: true,
       message: `Payment ${newStatus} successfully`,
       registration
     });
-
   } catch (error) {
     console.error('❌ Update status error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// ============================================
-// APPROVE PAYMENT
-// This handles: /registrations/:id/approve
-// ============================================
+// Approve payment
 exports.approvePayment = async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('✅ APPROVE PAYMENT REQUEST');
-    console.log('ID:', req.params.id);
-    console.log('User:', req.user?.email, req.user?.role);
-    console.log('========================================\n');
-
     const registration = await Registration.findById(req.params.id)
       .populate('student', 'fullName email phone');
 
-    if (!registration) {
-      return res.status(404).json({ message: 'Registration not found' });
-    }
+    if (!registration) return res.status(404).json({ message: 'Registration not found' });
 
-    // Check permission
     const isSuperAdmin = req.user.role === 'super_admin';
     const hasPermission = req.user.permissions?.canApprovePayments === true;
 
@@ -278,7 +245,6 @@ exports.approvePayment = async (req, res) => {
       return res.status(403).json({ message: 'You do not have permission to approve payments' });
     }
 
-    // Check department
     if (req.user.role === 'junior_admin' && req.user.department) {
       if (registration.department !== req.user.department) {
         return res.status(403).json({ message: 'You can only approve payments for your department' });
@@ -289,7 +255,6 @@ exports.approvePayment = async (req, res) => {
       return res.status(400).json({ message: 'Payment already approved' });
     }
 
-    // Update
     registration.paymentStatus = 'approved';
     registration.approvedBy = req.user._id;
     registration.approvedAt = new Date();
@@ -298,32 +263,20 @@ exports.approvePayment = async (req, res) => {
     await registration.save();
     await registration.populate('approvedBy', 'fullName');
 
-    console.log('✅ PAYMENT APPROVED');
-
     res.json({
       success: true,
       message: `Payment approved for ${registration.student?.fullName}`,
       registration
     });
-
   } catch (error) {
     console.error('❌ Approve error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-// ============================================
-// REJECT PAYMENT
-// This handles: /registrations/:id/reject
-// ============================================
+// Reject payment
 exports.rejectPayment = async (req, res) => {
   try {
-    console.log('\n========================================');
-    console.log('❌ REJECT PAYMENT REQUEST');
-    console.log('ID:', req.params.id);
-    console.log('Body:', req.body);
-    console.log('========================================\n');
-
     const { reason } = req.body;
 
     if (!reason || !reason.trim()) {
@@ -333,11 +286,8 @@ exports.rejectPayment = async (req, res) => {
     const registration = await Registration.findById(req.params.id)
       .populate('student', 'fullName email');
 
-    if (!registration) {
-      return res.status(404).json({ message: 'Registration not found' });
-    }
+    if (!registration) return res.status(404).json({ message: 'Registration not found' });
 
-    // Check permission
     const isSuperAdmin = req.user.role === 'super_admin';
     const hasPermission = req.user.permissions?.canRejectPayments === true;
 
@@ -345,7 +295,6 @@ exports.rejectPayment = async (req, res) => {
       return res.status(403).json({ message: 'You do not have permission to reject payments' });
     }
 
-    // Check department
     if (req.user.role === 'junior_admin' && req.user.department) {
       if (registration.department !== req.user.department) {
         return res.status(403).json({ message: 'You can only reject payments for your department' });
@@ -363,14 +312,11 @@ exports.rejectPayment = async (req, res) => {
 
     await registration.save();
 
-    console.log('✅ PAYMENT REJECTED');
-
     res.json({
       success: true,
       message: 'Payment rejected',
       registration
     });
-
   } catch (error) {
     console.error('❌ Reject error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
