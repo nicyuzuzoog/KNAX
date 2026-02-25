@@ -1,121 +1,59 @@
 const express = require('express');
-
 const router = express.Router();
 
+// ===== IMPORT CONTROLLERS SAFELY =====
+let controllers = {};
+try {
+  controllers = require('../controllers/adminController');
+} catch (err) {
+  console.error("⚠ adminController.js not found or failed to load", err);
+}
+
 const {
+  createJuniorAdmin,
+  getJuniorAdmins,
+  updateJuniorAdmin,
+  toggleAdminStatus,
+  deleteJuniorAdmin,
+  updateAdminPermissions,
+  resetAdminPassword,
+  getDashboardStats,
+  generateFinancialReport,
+  getAllStudents,
+  toggleStudentStatus,
+  deleteStudent
+} = controllers;
 
-createJuniorAdmin,
-getJuniorAdmins,
-updateJuniorAdmin,
-toggleAdminStatus,
-deleteJuniorAdmin,
-updateAdminPermissions,
-resetAdminPassword,
+// ===== IMPORT MIDDLEWARE SAFELY =====
+let middleware = {};
+try {
+  middleware = require('../middleware/auth');
+} catch (err) {
+  console.error("⚠ auth.js not found or failed to load", err);
+}
 
-getDashboardStats,
-generateFinancialReport,
+const { auth, superAdminOnly } = middleware;
 
-getAllStudents,
-toggleStudentStatus,
-deleteStudent
+// ===== APPLY MIDDLEWARE =====
+if (auth) router.use(auth);
+if (superAdminOnly) router.use(superAdminOnly);
 
-}=require('../controllers/adminController');
+// ===== ADMIN ROUTES =====
+if (createJuniorAdmin) router.post('/junior-admins', createJuniorAdmin);
+if (getJuniorAdmins) router.get('/junior-admins', getJuniorAdmins);
+if (updateJuniorAdmin) router.put('/junior-admins/:id', updateJuniorAdmin);
+if (deleteJuniorAdmin) router.delete('/junior-admins/:id', deleteJuniorAdmin);
+if (toggleAdminStatus) router.patch('/junior-admins/:id/toggle', toggleAdminStatus);
+if (updateAdminPermissions) router.patch('/junior-admins/:id/permissions', updateAdminPermissions);
+if (resetAdminPassword) router.post('/junior-admins/:id/reset-password', resetAdminPassword);
 
+// ===== DASHBOARD =====
+if (getDashboardStats) router.get('/dashboard-stats', getDashboardStats);
+if (generateFinancialReport) router.get('/financial-report', generateFinancialReport);
 
-const {auth,superAdminOnly}=require('../middleware/auth');
+// ===== STUDENTS =====
+if (getAllStudents) router.get('/students', getAllStudents);
+if (toggleStudentStatus) router.patch('/students/:id/toggle-status', toggleStudentStatus);
+if (deleteStudent) router.delete('/students/:id', deleteStudent);
 
-
-router.use(auth);
-
-router.use(superAdminOnly);
-
-
-
-/*
-ADMINS
-*/
-
-router.post(
-'/junior-admins',
-createJuniorAdmin
-);
-
-
-router.get(
-'/junior-admins',
-getJuniorAdmins
-);
-
-
-router.put(
-'/junior-admins/:id',
-updateJuniorAdmin
-);
-
-
-router.delete(
-'/junior-admins/:id',
-deleteJuniorAdmin
-);
-
-
-router.patch(
-'/junior-admins/:id/toggle',
-toggleAdminStatus
-);
-
-
-router.patch(
-'/junior-admins/:id/permissions',
-updateAdminPermissions
-);
-
-
-router.post(
-'/junior-admins/:id/reset-password',
-resetAdminPassword
-);
-
-
-
-/*
-DASHBOARD
-*/
-
-router.get(
-'/dashboard-stats',
-getDashboardStats
-);
-
-
-router.get(
-'/financial-report',
-generateFinancialReport
-);
-
-
-
-/*
-STUDENTS
-*/
-
-router.get(
-'/students',
-getAllStudents
-);
-
-
-router.patch(
-'/students/:id/toggle-status',
-toggleStudentStatus
-);
-
-
-router.delete(
-'/students/:id',
-deleteStudent
-);
-
-
-
-module.exports=router;
+module.exports = router;
