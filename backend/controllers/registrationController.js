@@ -1,18 +1,17 @@
-// controllers/registrationController.js
-
-const Registration = require('../models/Registration');
+const Registration =
+require('../models/Registration');
 
 
 /*
 CREATE REGISTRATION
-Matches ApplyInternship.jsx
 */
 
 exports.createRegistration = async (req,res)=>{
 
 try{
 
-const registration = await Registration.create({
+const registration =
+new Registration({
 
 student:req.user.id,
 
@@ -24,19 +23,29 @@ parentPhone:req.body.parentPhone,
 
 shift:req.body.shift,
 
-paymentStatus:"pending"
+status:"pending"
 
 });
 
-res.status(201).json(registration);
+await registration.save();
+
+res.json({
+
+message:"Application submitted",
+
+registration
+
+});
 
 }catch(error){
 
-console.error(error);
-
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -45,26 +54,34 @@ message:"Server error"
 
 
 /*
-GET MY REGISTRATION
+MY REGISTRATION
 */
 
-exports.getMyRegistration = async (req,res)=>{
+exports.getMyRegistration =
+async(req,res)=>{
 
 try{
 
-const registration = await Registration.findOne({
+const registration =
+await Registration.findOne({
 
 student:req.user.id
 
-}).populate('school','name');
+})
+.populate("school","name");
+
 
 res.json(registration);
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -73,28 +90,35 @@ message:"Server error"
 
 
 /*
-GET ALL REGISTRATIONS
+GET ALL
 */
 
-exports.getRegistrations = async (req,res)=>{
+exports.getRegistrations =
+async(req,res)=>{
 
 try{
 
-const registrations = await Registration.find()
+const registrations =
+await Registration.find()
 
-.populate('student','fullName email phone age')
+.populate("student","fullName email")
 
-.populate('school','name')
+.populate("school","name")
 
 .sort({createdAt:-1});
+
 
 res.json(registrations);
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -103,26 +127,33 @@ message:"Server error"
 
 
 /*
-GET SINGLE REGISTRATION
+GET ONE
 */
 
-exports.getRegistration = async (req,res)=>{
+exports.getRegistration =
+async(req,res)=>{
 
 try{
 
-const registration = await Registration.findById(req.params.id)
+const registration =
+await Registration.findById(req.params.id)
 
-.populate('student','fullName email phone age')
+.populate("student")
 
-.populate('school','name');
+.populate("school");
+
 
 res.json(registration);
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -131,32 +162,36 @@ message:"Server error"
 
 
 /*
-UPDATE REGISTRATION
+UPDATE
 */
 
-exports.updateRegistration = async (req,res)=>{
+exports.updateRegistration =
+async(req,res)=>{
 
 try{
 
-const registration = await Registration.findById(req.params.id);
+const registration =
+await Registration.findByIdAndUpdate(
 
-if(!registration){
+req.params.id,
 
-return res.status(404).json({
-message:"Not found"
-})
+req.body,
 
-}
+{new:true}
 
-await registration.save();
+);
 
 res.json(registration);
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -165,24 +200,33 @@ message:"Server error"
 
 
 /*
-DELETE REGISTRATION
+DELETE
 */
 
-exports.deleteRegistration = async (req,res)=>{
+exports.deleteRegistration =
+async(req,res)=>{
 
 try{
 
-await Registration.findByIdAndDelete(req.params.id);
+await Registration.findByIdAndDelete(
+req.params.id
+);
 
 res.json({
+
 message:"Deleted"
-})
+
+});
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -191,28 +235,39 @@ message:"Server error"
 
 
 /*
-UPDATE PAYMENT STATUS
+STATUS UPDATE
 */
 
-exports.updatePaymentStatus = async (req,res)=>{
+exports.updatePaymentStatus =
+async(req,res)=>{
 
 try{
 
-const registration = await Registration.findById(req.params.id);
+const registration =
+await Registration.findById(
+req.params.id
+);
 
-registration.paymentStatus=req.body.status;
+registration.status =
+req.body.status;
 
 await registration.save();
 
 res.json({
-message:"Updated"
-})
+
+message:"Status updated"
+
+});
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -220,25 +275,35 @@ message:"Server error"
 
 
 
-exports.approvePayment = async (req,res)=>{
+exports.approvePayment =
+async(req,res)=>{
 
 try{
 
-const registration = await Registration.findById(req.params.id);
+const registration =
+await Registration.findById(
+req.params.id
+);
 
-registration.paymentStatus="approved";
+registration.status="approved";
 
 await registration.save();
 
 res.json({
+
 message:"Approved"
-})
+
+});
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
@@ -246,25 +311,35 @@ message:"Server error"
 
 
 
-exports.rejectPayment = async (req,res)=>{
+exports.rejectPayment =
+async(req,res)=>{
 
 try{
 
-const registration = await Registration.findById(req.params.id);
+const registration =
+await Registration.findById(
+req.params.id
+);
 
-registration.paymentStatus="rejected";
+registration.status="rejected";
 
 await registration.save();
 
 res.json({
+
 message:"Rejected"
-})
+
+});
 
 }catch(error){
 
 res.status(500).json({
-message:"Server error"
-})
+
+message:"Server error",
+
+error:error.message
+
+});
 
 }
 
