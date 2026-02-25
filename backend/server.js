@@ -148,16 +148,14 @@ connectDB();
 // CORS CONFIGURATION
 // ==========================================
 const allowedOrigins = [
-  process.env.CLIENT_URL,        // Production frontend (Vercel)
+  process.env.CLIENT_URL,        // Production frontend
   "http://localhost:5173"        // Local Vite dev
 ].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman / server-to-server
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
@@ -175,32 +173,46 @@ app.use(express.urlencoded({ extended: true }));
 const dirs = ['uploads', 'uploads/receipts', 'uploads/photos'];
 dirs.forEach(dir => {
   const fullPath = path.join(__dirname, dir);
-  if (!fs.existsSync(fullPath)) {
-    fs.mkdirSync(fullPath, { recursive: true });
-  }
+  if (!fs.existsSync(fullPath)) fs.mkdirSync(fullPath, { recursive: true });
 });
 
-// Serve uploads (NOTE: ephemeral on Render)
+// Serve uploads (ephemeral on Render)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ==========================================
-// REQUEST LOGGER
+// SIMPLE ROOT ROUTE
 // ==========================================
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
+app.get('/', (req, res) => {
+  res.send('🚀 Server is running!');
 });
 
 // ==========================================
 // ROUTES
 // ==========================================
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/admin', require('./routes/adminRoutes'));
-app.use('/api/registrations', require('./routes/registrationRoutes'));
-app.use('/api/schools', require('./routes/schoolRoutes'));
-app.use('/api/attendance', require('./routes/attendanceRoutes'));
-app.use('/api/announcements', require('./routes/announcementRoutes'));
+try {
+  app.use('/api/auth', require('./routes/authRoutes'));
+} catch (err) { console.log('⚠ Auth routes missing'); }
 
+try {
+  app.use('/api/admin', require('./routes/adminRoutes'));
+} catch (err) { console.log('⚠ Admin routes missing'); }
+
+try {
+  app.use('/api/registrations', require('./routes/registrationRoutes'));
+} catch (err) { console.log('⚠ Registration routes missing'); }
+
+try {
+  app.use('/api/schools', require('./routes/schoolRoutes'));
+} catch (err) { console.log('⚠ School routes missing'); }
+
+try {
+  app.use('/api/attendance', require('./routes/attendanceRoutes'));
+} catch (err) { console.log('⚠ Attendance routes missing'); }
+
+try {
+  app.use('/api/announcements', require('./routes/announcementRoutes'));
+} catch (err) { console.log('⚠ Announcement routes missing'); }
+  
 // Optional routes with fallback
 const optionalRoutes = [
   { path: '/api/timetable', file: './routes/timetableRoutes', fallback: { timetable: [] } },
@@ -212,7 +224,7 @@ optionalRoutes.forEach(r => {
   try {
     app.use(r.path, require(r.file));
   } catch (err) {
-    console.log(`⚠ Optional route ${r.path} not found. Using fallback.`);
+    console.log(`⚠ Optional route ${r.path} missing, using fallback`);
     app.use(r.path, (req, res) => res.json(r.fallback));
   }
 });
@@ -229,7 +241,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==========================================
-// 404 HANDLER
+// 404 HANDLER (ONLY FOR UNKNOWN ROUTES)
 // ==========================================
 app.use((req, res) => {
   res.status(404).json({
@@ -252,7 +264,6 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ==========================================
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log('==========================================');
   console.log(`🚀 Server running on port ${PORT}`);
