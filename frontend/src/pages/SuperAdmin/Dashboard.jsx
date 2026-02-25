@@ -46,7 +46,11 @@ const SuperAdminDashboard = () => {
       if (statsRes.data) {
         setStats(statsRes.data);
       }
-      setRecentRegistrations(regsRes.data?.slice(0, 5) || []);
+      const registrationsArray = egsRes.data?.registrations || [];
+
+setRecentRegistrations(
+  registrationsArray.slice(0,5)
+);
     } catch (error) {
       console.error('Error:', error);
     } finally {
