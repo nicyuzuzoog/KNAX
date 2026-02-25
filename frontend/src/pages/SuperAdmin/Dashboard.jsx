@@ -46,7 +46,7 @@ const SuperAdminDashboard = () => {
       if (statsRes.data) {
         setStats(statsRes.data);
       }
-      const registrationsArray = egsRes.data?.registrations || [];
+      const registrationsArray = regsRes.data?.registrations || [];
 
 setRecentRegistrations(
   registrationsArray.slice(0,5)
