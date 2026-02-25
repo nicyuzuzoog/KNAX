@@ -1,288 +1,38 @@
+// controllers/adminController.js
+
 const User = require('../models/User');
 const Registration = require('../models/Registration');
+const School = require('../models/School');
 
-//////////////////////////////////////////////////
-// CREATE JUNIOR ADMIN
-//////////////////////////////////////////////////
 
-exports.createJuniorAdmin = async (req, res) => {
-  try {
-    const { fullName, email, password, department } = req.body;
-
-    const admin = await User.create({
-      fullName,
-      email,
-      password,
-      role: 'junior_admin',
-      department
-    });
-
-    res.json({
-      success: true,
-      admin
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// GET JUNIOR ADMINS
-//////////////////////////////////////////////////
-
-exports.getJuniorAdmins = async (req, res) => {
-  try {
-
-    const admins = await User.find({ role: 'junior_admin' })
-      .select('-password')
-      .sort({ createdAt: -1 });
-
-    res.json(admins);
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// UPDATE JUNIOR ADMIN
-//////////////////////////////////////////////////
-
-exports.updateJuniorAdmin = async (req, res) => {
-  try {
-
-    const admin = await User.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    ).select('-password');
-
-    res.json(admin);
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// DELETE JUNIOR ADMIN
-//////////////////////////////////////////////////
-
-exports.deleteJuniorAdmin = async (req, res) => {
-  try {
-
-    await User.findByIdAndDelete(req.params.id);
-
-    res.json({
-      message: "Admin deleted"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// TOGGLE ADMIN STATUS
-//////////////////////////////////////////////////
-
-exports.toggleAdminStatus = async (req, res) => {
-  try {
-
-    const admin = await User.findById(req.params.id);
-
-    admin.isActive = !admin.isActive;
-
-    await admin.save();
-
-    res.json({
-      isActive: admin.isActive
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// UPDATE PERMISSIONS
-//////////////////////////////////////////////////
-
-exports.updateAdminPermissions = async (req, res) => {
-  try {
-
-    const admin = await User.findById(req.params.id);
-
-    admin.permissions = req.body.permissions;
-
-    await admin.save();
-
-    res.json(admin);
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// RESET PASSWORD
-//////////////////////////////////////////////////
-
-exports.resetAdminPassword = async (req, res) => {
-  try {
-
-    const admin = await User.findById(req.params.id);
-
-    admin.password = req.body.password;
-
-    await admin.save();
-
-    res.json({
-      message: "Password reset successful"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// DASHBOARD STATS
-//////////////////////////////////////////////////
-
-exports.getDashboardStats = async (req, res) => {
-  try {
-
-    const studentsCount = await User.countDocuments({ role: 'student' });
-
-    const juniorAdminsCount = await User.countDocuments({
-      role: 'junior_admin'
-    });
-
-    const totalRegistrations =
-      await Registration.countDocuments();
-
-    const approvedRegistrations =
-      await Registration.countDocuments({
-        status: 'approved'
-      });
-
-    const pendingRegistrations =
-      await Registration.countDocuments({
-        status: 'pending'
-      });
-
-    const registrations = await Registration.find();
-
-    const totalEarnings = registrations.reduce(
-      (sum, r) => sum + (r.amountPaid || 0),
-      0
-    );
-
-    res.json({
-
-      totalEarnings,
-      totalRegistrations,
-      approvedRegistrations,
-      pendingRegistrations,
-      juniorAdminsCount,
-      studentsCount,
-      schoolsCount: 0,
-      departmentStats: []
-
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// FINANCIAL REPORT
-//////////////////////////////////////////////////
-
-exports.generateFinancialReport = async (req, res) => {
-  try {
-
-    const registrations = await Registration.find();
-
-    const total = registrations.reduce(
-      (sum, r) => sum + (r.amountPaid || 0),
-      0
-    );
-
-    res.json({
-      totalEarnings: total,
-      registrations
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
-
-//////////////////////////////////////////////////
-// GET STUDENTS
-//////////////////////////////////////////////////
+/*
+==============================
+GET ALL STUDENTS
+Used by:
+GET /api/admin/students
+==============================
+*/
 
 exports.getAllStudents = async (req, res) => {
   try {
 
-    const students = await User.find({
-      role: 'student'
-    }).select('-password');
+    const students = await User.find({ role: "student" })
+      .populate("school", "name")
+      .populate("class", "name")
+      .sort({ createdAt: -1 });
 
-    const registrations =
-      await Registration.find()
-      .populate('school','name')
-      .populate('student','fullName email');
+    const registrations = await Registration.find()
+      .populate("student");
 
     const result = students.map(student => {
 
-      const reg = registrations.find(
-        r => r.student?._id.toString()
-        === student._id.toString()
+      const registration = registrations.find(r =>
+        r.student?._id.toString() === student._id.toString()
       );
 
       return {
-
         ...student.toObject(),
-
-        registration: reg || null,
-
-        school: reg?.school?.name || null,
-
-        applicationStatus:
-        reg?.status || 'not_applied'
-
+        registration: registration || null
       };
 
     });
@@ -291,10 +41,154 @@ exports.getAllStudents = async (req, res) => {
 
   } catch (error) {
 
+    console.log("ADMIN STUDENTS ERROR:", error);
+
     res.status(500).json({
-      message:'Server error',
-      error:error.message
+      message: "Server error",
+      error: error.message
     });
 
   }
+};
+
+
+
+/*
+==============================
+TOGGLE STUDENT STATUS
+PATCH /admin/students/:id/toggle-status
+==============================
+*/
+
+exports.toggleStudentStatus = async (req, res) => {
+
+  try {
+
+    const student = await User.findById(req.params.id);
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student not found"
+      });
+    }
+
+    student.isActive = !student.isActive;
+
+    await student.save();
+
+    res.json({
+      message: "Student status updated successfully"
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: "Error updating student",
+      error: error.message
+    });
+
+  }
+
+};
+
+
+
+/*
+==============================
+DELETE STUDENT
+DELETE /admin/students/:id
+==============================
+*/
+
+exports.deleteStudent = async (req, res) => {
+
+  try {
+
+    const student = await User.findById(req.params.id);
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student not found"
+      });
+    }
+
+    await student.deleteOne();
+
+    res.json({
+      message: "Student deleted successfully"
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: "Delete failed",
+      error: error.message
+    });
+
+  }
+
+};
+
+
+
+/*
+==============================
+DASHBOARD STATS
+GET /admin/dashboard-stats
+==============================
+*/
+
+exports.getDashboardStats = async (req, res) => {
+
+  try {
+
+    const studentsCount = await User.countDocuments({
+      role: "student"
+    });
+
+    const juniorAdminsCount = await User.countDocuments({
+      role: "junior_admin"
+    });
+
+    const schoolsCount = await School.countDocuments();
+
+    const registrations = await Registration.find();
+
+    const approvedRegistrations =
+      registrations.filter(r => r.paymentStatus === "approved").length;
+
+    const pendingRegistrations =
+      registrations.filter(r => r.paymentStatus === "pending").length;
+
+    const totalRegistrations = registrations.length;
+
+    res.json({
+
+      totalEarnings: approvedRegistrations * 2000,
+
+      totalRegistrations,
+
+      approvedRegistrations,
+
+      pendingRegistrations,
+
+      juniorAdminsCount,
+
+      studentsCount,
+
+      schoolsCount,
+
+      departmentStats: []
+
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: "Stats error",
+      error: error.message
+    });
+
+  }
+
 };
