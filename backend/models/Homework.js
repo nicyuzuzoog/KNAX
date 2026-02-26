@@ -11,6 +11,11 @@ const HomeworkSchema = new mongoose.Schema({
         type: String
     },
 
+    subject: {
+        type: String,
+        default: "General"
+    },
+
     studentEmail: {
         type: String,
         required: true
@@ -20,12 +25,18 @@ const HomeworkSchema = new mongoose.Schema({
         type: Date
     },
 
+    status: {
+        type: String,
+        enum: ['pending','submitted','graded'],
+        default: 'pending'
+    },
+
     fileUrl: {
         type: String
     }
 
-}, {
-    timestamps: true
+},{
+    timestamps:true
 });
 
 module.exports = mongoose.model('Homework', HomeworkSchema);
