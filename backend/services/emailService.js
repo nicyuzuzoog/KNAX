@@ -53,14 +53,14 @@ const getEmailTemplate = (title, content, footerText = '') => `
     
     <div style="background: #f8f9fa; padding: 20px; border-top: 1px solid #e2e8f0;">
       <p style="margin: 0; color: #666; font-size: 14px;">
-        📍 Near Makuza Peace Plaza, ATENE Building, Kigali<br>
-        📞 0782562906 | 📧 nicjbdede@gmail.com
+        📍 Near Makuza Peace Plaza, ATHENE Building, Kigali<br>
+        📞 0782562906 | 📧 niyikorajeanbaptiste@gmail.com
       </p>
       ${footerText}
     </div>
     
     <div style="background: #1a1a2e; padding: 20px; text-align: center; color: rgba(255,255,255,0.7);">
-      <p style="margin: 0; font-size: 12px;">© 2024 KNAX_250 TECHNOLOGY Ltd. All rights reserved.</p>
+      <p style="margin: 0; font-size: 12px;">© 2026 KNAX_250 TECHNOLOGY Ltd. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -91,7 +91,7 @@ const sendWelcomeEmail = async (user) => {
     </div>
     
     <div style="text-align: center; margin: 25px 0;">
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+      <a href="${process.env.FRONTEND_URL || 'https://knax250technology.vercel.app'}/login" 
          style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
                 color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
                 font-weight: bold;">
@@ -148,7 +148,7 @@ const sendJuniorAdminWelcome = async (user, password) => {
     </ul>
     
     <div style="text-align: center; margin: 25px 0;">
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+      <a href="${process.env.FRONTEND_URL || 'https://knax250technology.vercel.app'}/login" 
          style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
                 color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
                 font-weight: bold;">
@@ -270,7 +270,7 @@ const sendPaymentApprovalEmail = async (user, registration) => {
     </ul>
     
     <div style="text-align: center; margin: 25px 0;">
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/student/dashboard" 
+      <a href="${process.env.FRONTEND_URL || 'https://knax250technology.vercel.app'}/student/dashboard" 
          style="display: inline-block; background: linear-gradient(135deg, #FFD700, #FFC107); 
                 color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
                 font-weight: bold;">
@@ -386,7 +386,7 @@ const sendAnnouncementEmail = async (recipients, announcement) => {
     ` : ''}
     
     <div style="text-align: center; margin: 25px 0;">
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" 
+      <a href="${process.env.FRONTEND_URL || 'https://knax250technology.vercel.app'}/login" 
          style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); 
                 color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; 
                 font-weight: bold;">
