@@ -6,23 +6,21 @@ const Homework = require('../models/Homework');
 
 
 /*
-=========================
-GET STUDENT HOMEWORKS
-Dynamic
-=========================
+==================================
+GET STUDENT HOMEWORKS (DYNAMIC)
+Uses logged in user email
+==================================
 */
 
 router.get('/my-homeworks', async (req, res) => {
 
     try {
 
-        const email = req.query.email;
+        const email = req.headers.email;
 
         if (!email) {
 
-            return res.status(400).json({
-                message: "Email required"
-            });
+            return res.json([]);
 
         }
 
@@ -50,10 +48,9 @@ router.get('/my-homeworks', async (req, res) => {
 
 
 /*
-=========================
-CREATE HOMEWORK
-Admin
-=========================
+==================================
+CREATE HOMEWORK (ADMIN)
+==================================
 */
 
 router.post('/create', async (req, res) => {
