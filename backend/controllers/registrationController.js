@@ -1,346 +1,339 @@
-const Registration =
-require('../models/Registration');
+const Registration = require('../models/Registration');
 
 
-/*
-CREATE REGISTRATION
-*/
+// =============================
+// CREATE REGISTRATION
+// =============================
 
-exports.createRegistration = async (req,res)=>{
+exports.createRegistration = async (req, res) => {
 
-try{
+  try {
 
-const registration =
-new Registration({
-
-student:req.user.id,
-
-department:req.body.department,
-
-school:req.body.school,
-
-parentPhone:req.body.parentPhone,
-
-shift:req.body.shift,
-
-status:"pending"
-
-});
-
-await registration.save();
-
-res.json({
-
-message:"Application submitted",
-
-registration
-
-});
-
-}catch(error){
-
-res.status(500).json({
-
-message:"Server error",
-
-error:error.message
-
-});
-
-}
-
-};
+    const {
+      department,
+      school,
+      parentPhone,
+      shift
+    } = req.body;
 
 
+    const existing = await Registration.findOne({
+      student: req.user.id
+    });
 
-/*
-MY REGISTRATION
-*/
+    if (existing) {
 
-exports.getMyRegistration =
-async(req,res)=>{
+      return res.status(400).json({
+        message: "You already applied"
+      });
 
-try{
-
-const registration =
-await Registration.findOne({
-
-student:req.user.id
-
-})
-.populate("school","name");
+    }
 
 
-res.json(registration);
+    const registration = new Registration({
 
-}catch(error){
+      student: req.user.id,
 
-res.status(500).json({
+      studentName: req.user.fullName,
 
-message:"Server error",
+      email: req.user.email,
 
-error:error.message
+      phone: req.user.phone,
 
-});
+      department,
 
-}
+      school,
+
+      parentPhone,
+
+      shift
+
+    });
+
+
+    await registration.save();
+
+
+    res.status(201).json({
+
+      success: true,
+
+      message: "Application submitted successfully",
+
+      registration
+
+    });
+
+  } catch (error) {
+
+    console.log("Create Registration Error:", error);
+
+    res.status(500).json({
+
+      message: "Server error",
+
+      error: error.message
+
+    });
+
+  }
 
 };
 
 
 
-/*
-GET ALL
-*/
+// =============================
+// GET MY REGISTRATION
+// =============================
 
-exports.getRegistrations =
-async(req,res)=>{
+exports.getMyRegistration = async (req, res) => {
 
-try{
+  try {
 
-const registrations =
-await Registration.find()
+    const registration = await Registration.findOne({
 
-.populate("student","fullName email")
+      student: req.user.id
 
-.populate("school","name")
-
-.sort({createdAt:-1});
+    }).populate("school", "name");
 
 
-res.json(registrations);
+    res.json(registration);
 
-}catch(error){
+  } catch (error) {
 
-res.status(500).json({
+    res.status(500).json({
 
-message:"Server error",
+      message: "Server error"
 
-error:error.message
+    });
 
-});
-
-}
+  }
 
 };
 
 
 
-/*
-GET ONE
-*/
+// =============================
+// GET ALL REGISTRATIONS
+// =============================
 
-exports.getRegistration =
-async(req,res)=>{
+exports.getRegistrations = async (req, res) => {
 
-try{
+  try {
 
-const registration =
-await Registration.findById(req.params.id)
+    const registrations = await Registration.find()
 
-.populate("student")
+      .populate("student", "fullName email")
 
-.populate("school");
+      .populate("school", "name")
+
+      .sort({ createdAt: -1 });
 
 
-res.json(registration);
+    res.json(registrations);
 
-}catch(error){
+  } catch (error) {
 
-res.status(500).json({
+    res.status(500).json({
 
-message:"Server error",
+      message: "Server error"
 
-error:error.message
+    });
 
-});
-
-}
+  }
 
 };
 
 
 
-/*
-UPDATE
-*/
+// =============================
+// GET SINGLE REGISTRATION
+// =============================
 
-exports.updateRegistration =
-async(req,res)=>{
+exports.getRegistration = async (req, res) => {
 
-try{
+  try {
 
-const registration =
-await Registration.findByIdAndUpdate(
+    const registration = await Registration.findById(req.params.id)
 
-req.params.id,
+      .populate("student", "fullName email")
 
-req.body,
+      .populate("school", "name");
 
-{new:true}
 
-);
+    res.json(registration);
 
-res.json(registration);
+  } catch (error) {
 
-}catch(error){
+    res.status(500).json({
 
-res.status(500).json({
+      message: "Server error"
 
-message:"Server error",
+    });
 
-error:error.message
-
-});
-
-}
+  }
 
 };
 
 
 
-/*
-DELETE
-*/
+// =============================
+// UPDATE REGISTRATION
+// =============================
 
-exports.deleteRegistration =
-async(req,res)=>{
+exports.updateRegistration = async (req, res) => {
 
-try{
+  try {
 
-await Registration.findByIdAndDelete(
-req.params.id
-);
+    const registration = await Registration.findByIdAndUpdate(
 
-res.json({
+      req.params.id,
 
-message:"Deleted"
+      req.body,
 
-});
+      { new: true }
 
-}catch(error){
-
-res.status(500).json({
-
-message:"Server error",
-
-error:error.message
-
-});
-
-}
-
-};
+    );
 
 
+    res.json(registration);
 
-/*
-STATUS UPDATE
-*/
+  } catch (error) {
 
-exports.updatePaymentStatus =
-async(req,res)=>{
+    res.status(500).json({
 
-try{
+      message: "Server error"
 
-const registration =
-await Registration.findById(
-req.params.id
-);
+    });
 
-registration.status =
-req.body.status;
-
-await registration.save();
-
-res.json({
-
-message:"Status updated"
-
-});
-
-}catch(error){
-
-res.status(500).json({
-
-message:"Server error",
-
-error:error.message
-
-});
-
-}
+  }
 
 };
 
 
 
-exports.approvePayment =
-async(req,res)=>{
+// =============================
+// DELETE REGISTRATION
+// =============================
 
-try{
+exports.deleteRegistration = async (req, res) => {
 
-const registration =
-await Registration.findById(
-req.params.id
-);
+  try {
 
-registration.status="approved";
+    await Registration.findByIdAndDelete(req.params.id);
 
-await registration.save();
 
-res.json({
+    res.json({
 
-message:"Approved"
+      message: "Registration deleted"
 
-});
+    });
 
-}catch(error){
+  } catch (error) {
 
-res.status(500).json({
+    res.status(500).json({
 
-message:"Server error",
+      message: "Server error"
 
-error:error.message
+    });
 
-});
-
-}
+  }
 
 };
 
 
 
-exports.rejectPayment =
-async(req,res)=>{
+// =============================
+// UPDATE PAYMENT STATUS
+// =============================
 
-try{
+exports.updatePaymentStatus = async (req, res) => {
 
-const registration =
-await Registration.findById(
-req.params.id
-);
+  try {
 
-registration.status="rejected";
+    const registration = await Registration.findById(req.params.id);
 
-await registration.save();
+    registration.paymentStatus = req.body.paymentStatus;
 
-res.json({
+    await registration.save();
 
-message:"Rejected"
 
-});
+    res.json(registration);
 
-}catch(error){
+  } catch (error) {
 
-res.status(500).json({
+    res.status(500).json({
 
-message:"Server error",
+      message: "Server error"
 
-error:error.message
+    });
 
-});
+  }
 
-}
+};
+
+
+
+// =============================
+// APPROVE PAYMENT
+// =============================
+
+exports.approvePayment = async (req, res) => {
+
+  try {
+
+    const registration = await Registration.findById(req.params.id);
+
+    registration.paymentStatus = "approved";
+
+    registration.status = "approved";
+
+    await registration.save();
+
+
+    res.json(registration);
+
+  } catch (error) {
+
+    res.status(500).json({
+
+      message: "Server error"
+
+    });
+
+  }
+
+};
+
+
+
+// =============================
+// REJECT PAYMENT
+// =============================
+
+exports.rejectPayment = async (req, res) => {
+
+  try {
+
+    const registration = await Registration.findById(req.params.id);
+
+    registration.paymentStatus = "rejected";
+
+    registration.status = "rejected";
+
+    await registration.save();
+
+
+    res.json(registration);
+
+  } catch (error) {
+
+    res.status(500).json({
+
+      message: "Server error"
+
+    });
+
+  }
 
 };
