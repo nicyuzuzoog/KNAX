@@ -2,59 +2,30 @@ const mongoose = require('mongoose');
 
 const HomeworkSchema = new mongoose.Schema({
 
-title: {
-type: String,
-required: true
-},
+    title: {
+        type: String,
+        required: true
+    },
 
-description: {
-type: String,
-required: true
-},
+    description: {
+        type: String
+    },
 
-department: {
+    studentEmail: {
+        type: String,
+        required: true
+    },
 
-type: String,
+    dueDate: {
+        type: Date
+    },
 
-enum: [
-"SOD",
-"NIT",
-"ACCOUNTING",
-"CSA",
-"ETE"
-],
+    fileUrl: {
+        type: String
+    }
 
-required: true
-
-},
-
-shift: {
-
-type: String,
-
-enum: [
-"morning",
-"afternoon"
-],
-
-required: true
-
-},
-
-dueDate: {
-type: Date
-},
-
-createdBy: {
-type: mongoose.Schema.Types.ObjectId,
-ref: "User"
-}
-
-},
-{
-timestamps: true
+}, {
+    timestamps: true
 });
 
-
-module.exports =
-mongoose.model("Homework", HomeworkSchema);
+module.exports = mongoose.model('Homework', HomeworkSchema);
