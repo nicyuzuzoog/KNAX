@@ -1,199 +1,132 @@
-// routes/registrationRoutes.js
-
 const express = require('express');
+
 const router = express.Router();
+
 const multer = require('multer');
+
 const path = require('path');
+
 const fs = require('fs');
 
-// Controllers
-const registrationController = require('../controllers/registrationController');
+const registrationController =
+require('../controllers/registrationController');
 
-// Middleware
-const { auth, adminOnly } = require('../middleware/auth');
+const { auth, adminOnly } =
+require('../middleware/auth');
 
 
-// =====================================================
-// ENSURE UPLOAD DIRECTORY EXISTS
-// =====================================================
+// ==========================
+// UPLOAD SETUP
+// ==========================
 
-const uploadDir = path.join(__dirname, '../uploads/receipts');
+const uploadDir = 'uploads/receipts';
 
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+
+fs.mkdirSync(uploadDir, { recursive: true });
+
 }
 
 
-// =====================================================
-// MULTER CONFIGURATION (Receipt Upload)
-// =====================================================
-
 const storage = multer.diskStorage({
 
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
+destination: (req, file, cb) => {
 
-  filename: (req, file, cb) => {
-    const uniqueName =
-      "receipt-" +
-      Date.now() +
-      "-" +
-      Math.round(Math.random() * 1E9) +
-      path.extname(file.originalname);
+cb(null, uploadDir);
 
-    cb(null, uniqueName);
-  }
+},
 
-});
+filename: (req, file, cb) => {
 
+cb(null,
 
-const upload = multer({
+Date.now() +
 
-  storage,
+path.extname(file.originalname)
 
-  limits: {
-    fileSize: 5 * 1024 * 1024
-  },
+);
 
-  fileFilter: (req, file, cb) => {
-
-    const allowedTypes = /jpeg|jpg|png|gif|pdf/;
-
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only images and PDF files allowed"));
-    }
-
-  }
+}
 
 });
 
 
-// =====================================================
-// AUTH REQUIRED FOR ALL ROUTES
-// =====================================================
+const upload = multer({ storage });
+
+
+// ==========================
+// AUTH REQUIRED
+// ==========================
 
 router.use(auth);
 
 
-// =====================================================
+// ==========================
 // STUDENT ROUTES
-// =====================================================
+// ==========================
 
-/*
-Apply for internship
-POST /api/registrations/apply
-*/
 router.post(
-  '/apply',
-  upload.single('receiptPhoto'),
-  registrationController.createRegistration
+'/apply',
+upload.single('receiptPhoto'),
+registrationController.createRegistration
 );
 
 
-/*
-Get my registration
-GET /api/registrations/my-registration
-*/
 router.get(
-  '/my-registration',
-  registrationController.getMyRegistration
+'/my-registration',
+registrationController.getMyRegistration
 );
 
 
-
-// =====================================================
+// ==========================
 // ADMIN ROUTES
-// =====================================================
+// ==========================
 
-/*
-Get all registrations
-GET /api/registrations
-*/
 router.get(
-  '/',
-  registrationController.getRegistrations
+'/',
+registrationController.getRegistrations
 );
 
 
-/*
-Get single registration
-GET /api/registrations/:id
-*/
 router.get(
-  '/:id',
-  registrationController.getRegistration
+'/:id',
+registrationController.getRegistration
 );
 
 
-/*
-Update registration
-PUT /api/registrations/:id
-*/
 router.put(
-  '/:id',
-  upload.single('receiptPhoto'),
-  registrationController.updateRegistration
+'/:id',
+registrationController.updateRegistration
 );
 
 
-/*
-Delete registration
-DELETE /api/registrations/:id
-*/
 router.delete(
-  '/:id',
-  adminOnly,
-  registrationController.deleteRegistration
+'/:id',
+adminOnly,
+registrationController.deleteRegistration
 );
 
 
+// ==========================
+// PAYMENT
+// ==========================
 
-// =====================================================
-// PAYMENT STATUS ROUTES
-// =====================================================
-
-/*
-Update payment status
-PATCH /api/registrations/:id/status
-*/
 router.patch(
-  '/:id/status',
-  registrationController.updatePaymentStatus
+'/:id/status',
+registrationController.updatePaymentStatus
 );
 
 
-/*
-Approve payment
-PATCH /api/registrations/:id/approve
-*/
 router.patch(
-  '/:id/approve',
-  registrationController.approvePayment
+'/:id/approve',
+registrationController.approvePayment
 );
 
 
-/*
-Reject payment
-PATCH /api/registrations/:id/reject
-*/
 router.patch(
-  '/:id/reject',
-  registrationController.rejectPayment
+'/:id/reject',
+registrationController.rejectPayment
 );
 
-
-
-// =====================================================
-// EXPORT ROUTER
-// =====================================================
 
 module.exports = router;
