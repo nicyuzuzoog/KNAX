@@ -308,7 +308,7 @@ const Landing = () => {
           <div
   className="logo-placeholder-box"
   style={{
-    backgroundImage: "url('/favicon.ico')",
+    backgroundImage: "url('public/favicon.ico')",
     backgroundSize: "contain",
     backgroundRepeat: "no-repeat",
     backgroundPosition: "center"
