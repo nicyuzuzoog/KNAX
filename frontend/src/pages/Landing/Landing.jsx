@@ -305,13 +305,23 @@ const Landing = () => {
       <section className="lnd-logo-section">
         <div className="lnd-container">
           <div className="logo-placeholder-row">
-            <div className="logo-placeholder-box">
-              <div className="logo-placeholder-inner">
-                <FaGraduationCap className="logo-ph-icon" />
-                <span className="logo-ph-text">YOUR COMPANY LOGO HERE</span>
-                <span className="logo-ph-sub">Replace this with your official logo image</span>
-              </div>
-            </div>
+          <div
+  className="logo-placeholder-box"
+  style={{
+    backgroundImage: "url('/favicon.ico')",
+    backgroundSize: "contain",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "center"
+  }}
+>
+  <div className="logo-placeholder-inner">
+    <FaGraduationCap className="logo-ph-icon" />
+    <span className="logo-ph-text">YOUR COMPANY LOGO HERE</span>
+    <span className="logo-ph-sub">
+      Replace this with your official logo image
+    </span>
+  </div>
+</div>
             <div className="logo-tagline">
               <h2>We Have <span className="accent-blue">Solutions</span> You Need</h2>
               <p>KNAX_250 TECHNOLOGY LTD is Kigali's premier technical training and internship center, empowering the next generation of tech professionals with world-class, RTB-certified education.</p>
