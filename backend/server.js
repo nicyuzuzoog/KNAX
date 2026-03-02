@@ -101,62 +101,43 @@ app.use(
   require('./routes/attendanceRoutes')
 );
 
+// ✅ FIXED: Timetable route added
+app.use(
+  '/api/timetable',
+  require('./routes/timetableRoutes')
+);
+
 app.use(
   '/api/announcements',
   require('./routes/announcementRoutes')
 );
 
-
-/*
-==============================
-HOMEWORK ROUTES (NEW)
-==============================
-*/
 app.use(
   '/api/homeworks',
   require('./routes/homeworkRoutes')
 );
 
 
-
-/*
-==============================
-HEALTH CHECK
-==============================
-*/
+// ================= HEALTH CHECK =================
 app.get('/api/health', (req, res) => {
-
   res.json({
     status: "OK"
   });
-
 });
 
 
-/*
-==============================
-404 HANDLER
-==============================
-*/
+// ================= 404 HANDLER =================
 app.use((req, res) => {
-
   res.status(404).json({
     message: "Route not found",
     path: req.originalUrl
   });
-
 });
 
 
-/*
-==============================
-START SERVER
-==============================
-*/
+// ================= START SERVER =================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-
   console.log("Server running on port", PORT);
-
 });
