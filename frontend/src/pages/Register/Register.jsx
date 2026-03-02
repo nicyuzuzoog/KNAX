@@ -22,7 +22,7 @@ import {
   FaExclamationCircle,
   FaShieldAlt
 } from 'react-icons/fa';
-import '../Login/Auth.css';
+import '../Login/Login.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
