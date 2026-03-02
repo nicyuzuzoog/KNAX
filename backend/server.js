@@ -82,6 +82,11 @@ app.use(
 );
 
 app.use(
+  '/api/shifts',
+  require('./routes/shiftRoutes')
+);
+
+app.use(
   '/api/admin',
   require('./routes/adminRoutes')
 );
