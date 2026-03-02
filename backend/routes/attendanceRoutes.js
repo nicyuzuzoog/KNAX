@@ -11,6 +11,11 @@ const {
 
 const { auth, adminOnly } = require('../middleware/auth');
 
+// ============================
+// GET ALL ATTENDANCE (Dashboard)
+// ============================
+router.get('/', auth, adminOnly, getAttendanceByDate);
+
 // Mark attendance
 router.post('/', auth, adminOnly, markAttendance);
 
