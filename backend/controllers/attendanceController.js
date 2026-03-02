@@ -1,39 +1,50 @@
 const Attendance = require('../models/Attendance');
 const Registration = require('../models/Registration');
 
-// Mark attendance
+
+// ==============================
+// MARK ATTENDANCE
+// ==============================
 exports.markAttendance = async (req, res) => {
   try {
     const { registrationId, status, checkInTime, checkOutTime, notes } = req.body;
 
     const registration = await Registration.findById(registrationId);
+
     if (!registration || registration.paymentStatus !== 'approved') {
-      return res.status(400).json({ 
-        message: 'Invalid registration or not approved' 
+      return res.status(400).json({
+        message: 'Invalid registration or not approved'
       });
     }
 
-    // Check if attendance already marked for today
+    // Get today's date range
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    // Check existing attendance
     const existingAttendance = await Attendance.findOne({
       registration: registrationId,
       date: { $gte: today, $lt: tomorrow }
     });
 
     if (existingAttendance) {
-      // Update existing attendance
       existingAttendance.status = status;
       existingAttendance.checkInTime = checkInTime;
       existingAttendance.checkOutTime = checkOutTime;
       existingAttendance.notes = notes;
+
       await existingAttendance.save();
-      return res.json({ message: 'Attendance updated', attendance: existingAttendance });
+
+      return res.json({
+        message: 'Attendance updated',
+        attendance: existingAttendance
+      });
     }
 
+    // Create new attendance
     const attendance = new Attendance({
       registration: registrationId,
       student: registration.student,
@@ -41,37 +52,69 @@ exports.markAttendance = async (req, res) => {
       checkInTime,
       checkOutTime,
       notes,
-      markedBy: req.user._id
+      markedBy: req.user._id,
+      date: new Date() // ✅ Always set date explicitly
     });
 
     await attendance.save();
-    res.status(201).json({ message: 'Attendance marked', attendance });
+
+    res.status(201).json({
+      message: 'Attendance marked',
+      attendance
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Mark attendance error:", error);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// Get attendance by registration
+
+// ==============================
+// GET ATTENDANCE BY REGISTRATION
+// ==============================
 exports.getAttendanceByRegistration = async (req, res) => {
   try {
-    const attendance = await Attendance.find({ 
-      registration: req.params.registrationId 
+    const attendance = await Attendance.find({
+      registration: req.params.registrationId
     })
       .populate('markedBy', 'fullName')
       .sort({ date: -1 });
 
     res.json(attendance);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Get by registration error:", error);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// Get attendance for a specific date (Admin)
+
+// ==============================
+// GET ATTENDANCE BY DATE (FIXED)
+// ==============================
 exports.getAttendanceByDate = async (req, res) => {
   try {
-    const { date, department } = req.query;
-    const queryDate = new Date(date);
+    let { date, department } = req.query;
+
+    // ✅ Default to today if no date provided
+    let queryDate = date ? new Date(date) : new Date();
+
+    // ✅ Validate date
+    if (isNaN(queryDate.getTime())) {
+      return res.status(400).json({
+        message: 'Invalid date provided'
+      });
+    }
+
     queryDate.setHours(0, 0, 0, 0);
+
     const nextDay = new Date(queryDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
@@ -90,34 +133,47 @@ exports.getAttendanceByDate = async (req, res) => {
       })
       .populate('markedBy', 'fullName');
 
-    // Filter by department if junior admin
+    // ✅ Restrict junior admin to their department
     if (req.user.role === 'junior_admin' && req.user.department) {
       attendanceRecords = attendanceRecords.filter(
-        record => record.registration.department === req.user.department
+        record =>
+          record.registration &&
+          record.registration.department === req.user.department
       );
     }
 
+    // ✅ Super admin department filter
     if (department && req.user.role === 'super_admin') {
       attendanceRecords = attendanceRecords.filter(
-        record => record.registration.department === department
+        record =>
+          record.registration &&
+          record.registration.department === department
       );
     }
 
     res.json(attendanceRecords);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Attendance date error:", error);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// Get active interns for attendance marking
+
+// ==============================
+// GET ACTIVE INTERNS
+// ==============================
 exports.getActiveInterns = async (req, res) => {
   try {
-    const filter = { 
+    const filter = {
       paymentStatus: 'approved',
       internshipStatus: 'active'
     };
 
-    // Junior admins can only see their department
+    // Restrict junior admins
     if (req.user.role === 'junior_admin' && req.user.department) {
       filter.department = req.user.department;
     }
@@ -128,25 +184,43 @@ exports.getActiveInterns = async (req, res) => {
       .populate('class', 'name');
 
     res.json(registrations);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Active interns error:", error);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// Get my attendance (Student)
+
+// ==============================
+// GET MY ATTENDANCE (STUDENT)
+// ==============================
 exports.getMyAttendance = async (req, res) => {
   try {
-    const registration = await Registration.findOne({ student: req.user._id });
+    const registration = await Registration.findOne({
+      student: req.user._id
+    });
+
     if (!registration) {
       return res.json([]);
     }
 
-    const attendance = await Attendance.find({ registration: registration._id })
+    const attendance = await Attendance.find({
+      registration: registration._id
+    })
       .populate('markedBy', 'fullName')
       .sort({ date: -1 });
 
     res.json(attendance);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("My attendance error:", error);
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
