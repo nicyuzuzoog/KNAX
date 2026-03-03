@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import logo from "../assets/logo.png";
 import { 
   FaCertificate, 
   FaWifi, 
@@ -315,11 +316,11 @@ const Landing = () => {
   }}
 >
   <div className="logo-placeholder-inner">
-    <FaGraduationCap className="logo-ph-icon" />
-    <span className="logo-ph-text">YOUR COMPANY LOGO HERE</span>
-    <span className="logo-ph-sub">
-      Replace this with your official logo image
-    </span>
+   <img 
+     src={logo} 
+     alt="Your Company Name Logo" 
+     className="company-logo" 
+        />
   </div>
 </div>
             <div className="logo-tagline">
