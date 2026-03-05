@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import logo from "../assets/logo.png";
+import logo from "../../assets/logo.png";
 import { 
   FaCertificate, 
   FaWifi, 
