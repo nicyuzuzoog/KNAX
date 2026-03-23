@@ -309,10 +309,10 @@ const ApplyInternship = () => {
                   <p>After submitting your application, please pay the registration fee to:</p>
                   <div className="payment-methods">
                     <div className="payment-method">
-                      <strong>MoMo:</strong> 0782562906 (Jean Baptiste NDUWINGOMA)
+                      <strong>MoMo:</strong> 0782562906 (Jean Bosco NIYIKORA)
                     </div>
                     <div className="payment-method">
-                      <strong>Bank:</strong> Bank of Kigali - 100XXXXXXX
+                      <strong>Bank:</strong> Bank of Kigali - 100213466628
                     </div>
                   </div>
                   <p className="notice-note">
